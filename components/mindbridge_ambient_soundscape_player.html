@@ -1,0 +1,264 @@
+
+<style>
+  .sc-card { transition: all 0.25s cubic-bezier(0.34,1.4,0.64,1); cursor: pointer; user-select: none; }
+  .sc-card:hover { transform: translateY(-2px); }
+  .sc-card:active { transform: scale(0.97); }
+  .timer-btn { transition: background 0.15s; cursor: pointer; border: none; font-size: 11px; font-weight: 500; }
+  .timer-btn:hover { opacity: 0.85; }
+  input[type=range] { cursor: pointer; }
+  @keyframes waveBar { 0%,100% { height: 4px; } 50% { height: 18px; } }
+  @keyframes pulseDot { 0% { transform: scale(1); opacity:0.7; } 100% { transform: scale(2); opacity:0; } }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+  .wave-bar { display:inline-block; width:3px; border-radius:2px; background:#7ab8d4; vertical-align:middle; }
+  .playing-section { animation: fadeIn 0.3s ease; }
+</style>
+
+<div style="padding:1.5rem 0; max-width:520px; margin:0 auto; font-family: var(--font-sans);">
+
+  <div style="margin-bottom:20px;">
+    <p style="margin:0 0 4px; font-size:13px; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:1px; font-weight:500;">Ambient Soundscapes</p>
+    <p style="margin:0; font-size:13px; color:var(--color-text-secondary);" id="subtitle">Choose a sound to accompany your session</p>
+  </div>
+
+  <div id="waveform" style="display:none; align-items:center; gap:3px; margin-bottom:16px; height:24px;">
+    <span style="font-size:12px; color:var(--color-text-secondary); margin-right:6px;" id="now-playing-label">Now playing:</span>
+    <span style="font-size:12px; font-weight:500; color:var(--color-text-primary); margin-right:8px;" id="now-playing-name"></span>
+    <span class="wave-bar" style="animation: waveBar 0.5s 0.0s ease-in-out infinite;"></span>
+    <span class="wave-bar" style="animation: waveBar 0.5s 0.1s ease-in-out infinite;"></span>
+    <span class="wave-bar" style="animation: waveBar 0.5s 0.2s ease-in-out infinite;"></span>
+    <span class="wave-bar" style="animation: waveBar 0.5s 0.15s ease-in-out infinite;"></span>
+    <span class="wave-bar" style="animation: waveBar 0.5s 0.05s ease-in-out infinite;"></span>
+    <span class="wave-bar" style="animation: waveBar 0.5s 0.25s ease-in-out infinite;"></span>
+    <span class="wave-bar" style="animation: waveBar 0.5s 0.1s ease-in-out infinite;"></span>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px;" id="soundGrid"></div>
+
+  <div style="margin-bottom:20px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+      <span style="font-size:12px; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:1px;">Volume</span>
+      <span style="font-size:12px; color:var(--color-text-secondary);" id="vol-label">60%</span>
+    </div>
+    <input type="range" min="0" max="100" value="60" id="vol-slider" style="width:100%; accent-color: #5a9ec8;" />
+  </div>
+
+  <div id="playing-section" class="playing-section" style="display:none; border-top:0.5px solid var(--color-border-tertiary); padding-top:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <span style="font-size:12px; color:var(--color-text-secondary); text-transform:uppercase; letter-spacing:1px;">Session timer</span>
+      <span style="font-size:18px; font-weight:500; color:var(--color-text-primary); font-variant-numeric:tabular-nums;" id="timer-display">00:00</span>
+    </div>
+
+    <div style="display:flex; gap:6px; margin-bottom:12px;">
+      <button class="timer-btn" data-min="5"  style="flex:1;padding:6px 0;border-radius:8px;background:var(--color-background-secondary);color:var(--color-text-primary);">5m</button>
+      <button class="timer-btn" data-min="10" style="flex:1;padding:6px 0;border-radius:8px;background:var(--color-background-secondary);color:var(--color-text-primary);">10m</button>
+      <button class="timer-btn" data-min="15" style="flex:1;padding:6px 0;border-radius:8px;background:var(--color-background-secondary);color:var(--color-text-primary);">15m</button>
+      <button class="timer-btn" data-min="20" style="flex:1;padding:6px 0;border-radius:8px;background:var(--color-background-secondary);color:var(--color-text-primary);">20m</button>
+      <button class="timer-btn" data-min="30" style="flex:1;padding:6px 0;border-radius:8px;background:var(--color-background-secondary);color:var(--color-text-primary);">30m</button>
+    </div>
+
+    <div id="progress-wrap" style="display:none; height:3px; background:var(--color-border-tertiary); border-radius:2px; margin-bottom:12px; overflow:hidden;">
+      <div id="progress-bar" style="height:100%; width:0%; background:#5a9ec8; border-radius:2px; transition:width 1s linear;"></div>
+    </div>
+
+    <button id="stop-btn" style="width:100%;padding:10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);font-size:13px;cursor:pointer;letter-spacing:0.5px;font-family:var(--font-sans);">
+      ■ &nbsp;Stop sound
+    </button>
+  </div>
+</div>
+
+<script>
+const SOUNDS = [
+  { id:"rain",      icon:"🌧", label:"Gentle Rain",      desc:"Soft rainfall",       color:"#5a9ec8", type:"rain"   },
+  { id:"forest",    icon:"🌿", label:"Forest Birds",     desc:"Birds & trees",       color:"#5a9e6e", type:"forest" },
+  { id:"ocean",     icon:"🌊", label:"Ocean Waves",      desc:"Slow rolling waves",  color:"#3a8ec8", type:"ocean"  },
+  { id:"fire",      icon:"🔥", label:"Fireplace",        desc:"Warm crackling fire", color:"#c47a3a", type:"fire"   },
+  { id:"wind",      icon:"🏔", label:"Mountain Wind",    desc:"Gentle breeze",       color:"#7a8eb8", type:"wind"   },
+  { id:"night",     icon:"🌙", label:"Night Crickets",   desc:"Peaceful night",      color:"#7a5ab8", type:"night"  },
+];
+
+let ctx = null, masterGain = null, nodes = [], activeId = null;
+let timerGoal = null, elapsed = 0, timerInterval = null, clockInterval = null;
+
+function initCtx() {
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === "suspended") ctx.resume();
+}
+
+function brownNoise() {
+  const buf = ctx.createBuffer(1, ctx.sampleRate*4, ctx.sampleRate);
+  const d = buf.getChannelData(0); let last=0;
+  for(let i=0;i<d.length;i++){const w=Math.random()*2-1;d[i]=(last+0.02*w)/1.02;last=d[i];d[i]*=3.5;}
+  const s=ctx.createBufferSource();s.buffer=buf;s.loop=true;return s;
+}
+function whiteNoise() {
+  const buf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  const s=ctx.createBufferSource();s.buffer=buf;s.loop=true;return s;
+}
+
+function stopAll() {
+  nodes.forEach(n=>{try{n.stop();}catch(_){}});
+  nodes=[];
+  if(masterGain){masterGain.disconnect();masterGain=null;}
+}
+
+function setVol(v){ if(masterGain) masterGain.gain.setTargetAtTime(v,ctx.currentTime,0.1); }
+
+function play(type, vol) {
+  initCtx(); stopAll();
+  masterGain = ctx.createGain(); masterGain.gain.value = vol; masterGain.connect(ctx.destination);
+  const M = masterGain;
+
+  if(type==="rain"){
+    const s=brownNoise(), f=ctx.createBiquadFilter(), g=ctx.createGain();
+    f.type="highpass";f.frequency.value=400;g.gain.value=0.4;
+    s.connect(f);f.connect(g);g.connect(M);s.start();nodes.push(s);
+    const drip=()=>{if(!nodes.length)return;const o=ctx.createOscillator(),dg=ctx.createGain();
+      o.frequency.value=1200+Math.random()*800;dg.gain.setValueAtTime(0.04,ctx.currentTime);
+      dg.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+      o.connect(dg);dg.connect(M);o.start();o.stop(ctx.currentTime+0.3);
+      setTimeout(drip,400+Math.random()*2000);};setTimeout(drip,500);
+  }
+  else if(type==="ocean"){
+    for(let i=0;i<3;i++){const s=brownNoise(),f=ctx.createBiquadFilter(),g=ctx.createGain();
+      f.type="bandpass";f.frequency.value=100+i*80;f.Q.value=0.5;g.gain.value=0.12;
+      s.connect(f);f.connect(g);g.connect(M);s.start();nodes.push(s);
+      const lfo=ctx.createOscillator(),lg=ctx.createGain();
+      lfo.frequency.value=0.07+i*0.03;lg.gain.value=0.1;lfo.connect(lg);lg.connect(g.gain);lfo.start();nodes.push(lfo);}
+  }
+  else if(type==="forest"){
+    const s=brownNoise(),f=ctx.createBiquadFilter(),g=ctx.createGain();
+    f.type="bandpass";f.frequency.value=300;f.Q.value=1;g.gain.value=0.07;
+    s.connect(f);f.connect(g);g.connect(M);s.start();nodes.push(s);
+    const chirp=()=>{if(!nodes.length)return;const o=ctx.createOscillator(),bg=ctx.createGain();
+      const fr=1800+Math.random()*1200;o.type="sine";o.frequency.setValueAtTime(fr,ctx.currentTime);
+      o.frequency.linearRampToValueAtTime(fr*1.3,ctx.currentTime+0.1);
+      o.frequency.linearRampToValueAtTime(fr,ctx.currentTime+0.2);
+      bg.gain.setValueAtTime(0,ctx.currentTime);bg.gain.linearRampToValueAtTime(0.04,ctx.currentTime+0.05);
+      bg.gain.linearRampToValueAtTime(0,ctx.currentTime+0.25);
+      o.connect(bg);bg.connect(M);o.start();o.stop(ctx.currentTime+0.3);
+      setTimeout(chirp,700+Math.random()*3000);};setTimeout(chirp,400);
+  }
+  else if(type==="fire"){
+    const s=brownNoise(),f=ctx.createBiquadFilter(),g=ctx.createGain();
+    f.type="lowpass";f.frequency.value=500;g.gain.value=0.3;
+    s.connect(f);f.connect(g);g.connect(M);s.start();nodes.push(s);
+    const crackle=()=>{if(!nodes.length)return;const w=whiteNoise(),cg=ctx.createGain();
+      cg.gain.setValueAtTime(0.07,ctx.currentTime);cg.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.05+Math.random()*0.1);
+      w.connect(cg);cg.connect(M);w.start();w.stop(ctx.currentTime+0.15);nodes.push(w);
+      setTimeout(crackle,100+Math.random()*500);};setTimeout(crackle,200);
+  }
+  else if(type==="wind"){
+    const s=brownNoise(),f=ctx.createBiquadFilter(),g=ctx.createGain();
+    f.type="bandpass";f.frequency.value=200;f.Q.value=0.8;g.gain.value=0.18;
+    s.connect(f);f.connect(g);g.connect(M);s.start();nodes.push(s);
+    const lfo=ctx.createOscillator(),lg=ctx.createGain();
+    lfo.frequency.value=0.05;lg.gain.value=0.13;lfo.connect(lg);lg.connect(g.gain);lfo.start();nodes.push(lfo);
+  }
+  else if(type==="night"){
+    const chirp=()=>{if(!nodes.length)return;
+      for(let i=0;i<3;i++){const o=ctx.createOscillator(),g=ctx.createGain();
+        o.type="sine";o.frequency.value=3800+i*200+Math.random()*100;
+        g.gain.setValueAtTime(0.012,ctx.currentTime+i*0.02);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.08+i*0.02);
+        o.connect(g);g.connect(M);o.start(ctx.currentTime+i*0.02);o.stop(ctx.currentTime+0.12+i*0.02);nodes.push(o);}
+      setTimeout(chirp,150+Math.random()*180);};chirp();
+    const frog=()=>{if(!nodes.length)return;const o=ctx.createOscillator(),g=ctx.createGain();
+      o.frequency.value=180+Math.random()*60;o.type="triangle";
+      g.gain.setValueAtTime(0.03,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+      o.connect(g);g.connect(M);o.start();o.stop(ctx.currentTime+0.4);
+      setTimeout(frog,2000+Math.random()*4000);};setTimeout(frog,1200);
+  }
+}
+
+// Build grid
+const grid = document.getElementById("soundGrid");
+SOUNDS.forEach(s => {
+  const card = document.createElement("div");
+  card.className = "sc-card";
+  card.id = "card-"+s.id;
+  card.innerHTML = `
+    <div style="font-size:22px;margin-bottom:6px;line-height:1;">${s.icon}</div>
+    <div style="font-size:11px;font-weight:500;color:var(--color-text-primary);">${s.label}</div>
+    <div style="font-size:10px;color:var(--color-text-secondary);margin-top:2px;">${s.desc}</div>
+  `;
+  card.style.cssText = `background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px 10px;text-align:center;`;
+  card.addEventListener("click", () => {
+    if (activeId === s.id) { handleStop(); return; }
+    const vol = parseInt(document.getElementById("vol-slider").value)/100;
+    play(s.type, vol);
+    activeId = s.id;
+    // update cards
+    SOUNDS.forEach(ss => {
+      const c = document.getElementById("card-"+ss.id);
+      if(ss.id===s.id){
+        c.style.background = ss.color+"22";
+        c.style.border = `1.5px solid ${ss.color}66`;
+      } else {
+        c.style.background = "var(--color-background-secondary)";
+        c.style.border = "0.5px solid var(--color-border-tertiary)";
+      }
+    });
+    // show playing UI
+    document.getElementById("waveform").style.display="flex";
+    document.getElementById("now-playing-name").textContent = s.label;
+    document.getElementById("playing-section").style.display="block";
+    document.querySelectorAll(".wave-bar").forEach(b=>b.style.background=s.color);
+    // clock
+    elapsed=0; clearInterval(clockInterval);
+    clockInterval=setInterval(()=>{elapsed++;updateTimer();},1000);
+  });
+  grid.appendChild(card);
+});
+
+function handleStop(){
+  stopAll(); activeId=null;
+  clearInterval(clockInterval); clearInterval(timerInterval);
+  elapsed=0; timerGoal=null;
+  document.getElementById("waveform").style.display="none";
+  document.getElementById("playing-section").style.display="none";
+  document.getElementById("timer-display").textContent="00:00";
+  document.getElementById("progress-wrap").style.display="none";
+  document.getElementById("progress-bar").style.width="0%";
+  SOUNDS.forEach(s=>{
+    const c=document.getElementById("card-"+s.id);
+    c.style.background="var(--color-background-secondary)";
+    c.style.border="0.5px solid var(--color-border-tertiary)";
+  });
+  document.querySelectorAll(".timer-btn").forEach(b=>{b.style.background="var(--color-background-secondary)";b.style.color="var(--color-text-primary)";});
+}
+
+function updateTimer(){
+  const m=Math.floor(elapsed/60), s=elapsed%60;
+  document.getElementById("timer-display").textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+  if(timerGoal){
+    const pct=Math.min(elapsed/(timerGoal*60)*100,100);
+    document.getElementById("progress-bar").style.width=pct+"%";
+    if(elapsed>=timerGoal*60) handleStop();
+  }
+}
+
+document.getElementById("stop-btn").addEventListener("click", handleStop);
+
+document.getElementById("vol-slider").addEventListener("input", e=>{
+  const v=parseInt(e.target.value);
+  document.getElementById("vol-label").textContent=v+"%";
+  setVol(v/100);
+});
+
+document.querySelectorAll(".timer-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const m=parseInt(btn.dataset.min);
+    if(timerGoal===m){
+      timerGoal=null;
+      btn.style.background="var(--color-background-secondary)";
+      btn.style.color="var(--color-text-primary)";
+      document.getElementById("progress-wrap").style.display="none";
+    } else {
+      timerGoal=m;
+      document.querySelectorAll(".timer-btn").forEach(b=>{b.style.background="var(--color-background-secondary)";b.style.color="var(--color-text-primary)";});
+      btn.style.background="#5a9ec8";btn.style.color="white";
+      document.getElementById("progress-wrap").style.display="block";
+    }
+  });
+});
+</script>
