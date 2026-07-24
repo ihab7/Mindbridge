@@ -9,6 +9,7 @@ import { MedicationChart } from "@/components/patient/medication-chart"
 import { AlertList } from "@/components/practitioner/alert-list"
 import { MentalStatusBadge } from "@/components/mental-status-badge"
 import { PractitionerFeedbackForm } from "@/components/practitioner/feedback-form"
+import { SessionPrepViewer } from "@/components/practitioner/session-prep-viewer"
 import { NewReportButton } from "@/components/practitioner/consultation-report/new-report-button"
 import {
   parseSideEffectsFromDb,
@@ -103,6 +104,14 @@ export default async function PatientDetailPage({
       </div>
 
       <div className="max-w-3xl">
+        <SessionPrepViewer
+          patientId={patientId}
+          patientName={patient.name}
+          feedbackAnchorId="practitioner-feedback"
+        />
+      </div>
+
+      <div id="practitioner-feedback" className="max-w-3xl scroll-mt-20">
         <PractitionerFeedbackForm patientId={patientId} />
       </div>
 

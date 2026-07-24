@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS session_prep (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(patient_id)
 );
+ALTER TABLE session_prep ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP WITH TIME ZONE NULL;
 
 -- Practitioner feedback (one active row per patient)
 CREATE TABLE IF NOT EXISTS practitioner_feedback (

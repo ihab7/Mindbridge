@@ -2,7 +2,7 @@ import { getSession } from "@/lib/auth"
 import { getSql } from "@/lib/db"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Brain, Moon, Pill, ChevronRight } from "lucide-react"
+import { Brain, Moon, Pill, ChevronRight, Sparkles } from "lucide-react"
 import { MentalStatusBadge } from "@/components/mental-status-badge"
 
 export default async function PatientsListPage() {
@@ -19,7 +19,10 @@ export default async function PatientsListPage() {
       (SELECT anxiety FROM journal_entries j WHERE j.patient_id = u.id ORDER BY j.created_at DESC LIMIT 1) as latest_anxiety,
       (SELECT sleep_hours FROM journal_entries j WHERE j.patient_id = u.id ORDER BY j.created_at DESC LIMIT 1) as latest_sleep,
       (SELECT medication_taken FROM journal_entries j WHERE j.patient_id = u.id ORDER BY j.created_at DESC LIMIT 1) as latest_med,
-      (SELECT created_at FROM journal_entries j WHERE j.patient_id = u.id ORDER BY j.created_at DESC LIMIT 1) as last_entry_at
+      (SELECT created_at FROM journal_entries j WHERE j.patient_id = u.id ORDER BY j.created_at DESC LIMIT 1) as last_entry_at,
+      (SELECT (topics_to_discuss != '' OR questions_for_therapist != '' OR recent_concerns != '')
+         AND (reviewed_at IS NULL OR reviewed_at < updated_at)
+       FROM session_prep sp WHERE sp.patient_id = u.id) as has_new_prep
     FROM users u
     JOIN patients p ON p.user_id = u.id
     WHERE p.practitioner_id = ${user.id}
@@ -58,6 +61,12 @@ export default async function PatientsListPage() {
                   {hasAlerts && (
                     <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium text-destructive">
                       {String(patient.open_alerts)} alert{Number(patient.open_alerts) !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                  {Boolean(patient.has_new_prep) && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:bg-amber-500/15 dark:text-amber-400">
+                      <Sparkles className="h-2.5 w-2.5" />
+                      New session prep
                     </span>
                   )}
                 </div>
