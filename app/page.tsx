@@ -3,8 +3,12 @@ import Link from "next/link"
 import Image from "next/image"
 import { Activity, Shield, MessageCircle, BarChart3, Bell, Heart } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { PsychiatristFinder } from "@/components/psychiatrist/psychiatrist-finder"
+import { getSession } from "@/lib/auth"
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const user = await getSession()
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-sm">
@@ -110,6 +114,12 @@ export default function LandingPage() {
         </section>
 
         <section className="px-6 py-20">
+          <div className="mx-auto max-w-6xl">
+            <PsychiatristFinder isLoggedIn={Boolean(user)} />
+          </div>
+        </section>
+
+        <section className="px-6 py-20">
           <div className="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-8 text-center md:p-12">
             <h2 className="text-balance text-2xl font-bold text-foreground">
               Try the demo accounts
@@ -136,11 +146,14 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-border px-6 py-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 sm:flex-row">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Activity className="h-4 w-4 text-primary" />
             MindBridge
           </div>
+          <Link href="/join" className="text-sm font-medium text-primary hover:underline">
+            Are you a psychiatrist? List your practice on MindBridge →
+          </Link>
           <p className="text-sm text-muted-foreground">
             Secure mental health monitoring platform
           </p>

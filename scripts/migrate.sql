@@ -174,3 +174,37 @@ CREATE INDEX IF NOT EXISTS idx_alerts_patient ON alerts(patient_id);
 CREATE INDEX IF NOT EXISTS idx_alerts_status ON alerts(status);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_patients_practitioner ON patients(practitioner_id);
+
+-- "Find a Psychiatrist Near You" directory (B2B: practitioners/cabinets pay
+-- to be listed; patients browse and see contact info for free once logged
+-- in). Independent of `users` -- a directory listing does not require the
+-- practitioner to hold a MindBridge login. `user_id` optionally links a
+-- listing to a platform practitioner account when the same person has one.
+CREATE TABLE IF NOT EXISTS practitioners (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  full_name VARCHAR(255) NOT NULL,
+  specialty VARCHAR(255) NOT NULL,
+  bio TEXT DEFAULT '',
+  address TEXT DEFAULT '',
+  city VARCHAR(255) DEFAULT '',
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  phone VARCHAR(50) DEFAULT '',
+  email VARCHAR(255) DEFAULT '',
+  website VARCHAR(255) DEFAULT '',
+  languages TEXT[] NOT NULL DEFAULT '{}',
+  experience_years INTEGER,
+  tags TEXT[] NOT NULL DEFAULT '{}',
+  avatar_url TEXT DEFAULT '',
+  opening_hours JSONB NOT NULL DEFAULT '{}',
+  plan VARCHAR(20) NOT NULL DEFAULT 'basic' CHECK (plan IN ('basic', 'premium')),
+  is_subscribed BOOLEAN NOT NULL DEFAULT false,
+  subscription_expires_at TIMESTAMPTZ,
+  is_verified BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_practitioners_listing
+  ON practitioners(is_subscribed, subscription_expires_at);
+CREATE INDEX IF NOT EXISTS idx_practitioners_plan ON practitioners(plan);
+CREATE INDEX IF NOT EXISTS idx_practitioners_user ON practitioners(user_id);

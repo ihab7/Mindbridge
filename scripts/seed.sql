@@ -105,6 +105,57 @@ INSERT INTO alerts (patient_id, alert_type, description, status, created_at) VAL
 (2, 'medication_missed', 'Missed medication 2 days in a row', 'resolved', NOW() - INTERVAL '4 days'),
 (3, 'anxiety_spike', 'Anxiety level at 9 - critical threshold', 'open', NOW() - INTERVAL '1 day');
 
+-- "Find a Psychiatrist Near You" directory demo listings
+DELETE FROM practitioners;
+INSERT INTO practitioners (
+  full_name, specialty, bio, address, city, latitude, longitude, phone, email, website,
+  languages, experience_years, tags, opening_hours, plan, is_subscribed, subscription_expires_at, is_verified
+) VALUES
+('Dr. Melek Hajri', 'Child Psychiatrist',
+ 'Specialist in child and adolescent psychiatry, known for exceptional listening skills and warm approach. Builds trusting relationships with young patients.',
+ 'Hamed Medical, Cabinet No. 5, Tunis', 'Tunis', 36.8427, 10.1595,
+ '+216 21 821 809', 'contact@hajri-psychiatry.tn', '',
+ ARRAY['Arabic', 'French', 'English'], 12,
+ ARRAY['Child psychiatry', 'Adolescents', 'Dyslexia', 'ADHD', 'Family therapy'],
+ '{"Mon–Fri": "9:00–18:00", "Saturday": "9:00–15:00", "Sunday": "Closed"}'::jsonb,
+ 'premium', true, NOW() + INTERVAL '180 days', true),
+
+('Dr. Mourad Bouattour', 'Psychiatrist & Psychotherapist',
+ 'Praised for his thorough diagnostic approach and deep empathy. Guides patients to reflect on aspects of themselves they had never considered.',
+ 'Rue Ammar Ibn Yasser, Ariana', 'Ariana', 36.8484, 10.1655,
+ '+216 27 950 602', '', '',
+ ARRAY['Arabic', 'French'], 15,
+ ARRAY['Depression', 'Anxiety', 'Psychotherapy', 'CBT', 'Adult psychiatry'],
+ '{"Mon–Sat": "10:00–20:00", "Sunday": "Closed"}'::jsonb,
+ 'premium', true, NOW() + INTERVAL '180 days', true),
+
+('Dr. Dhouha Bougacha', 'Psychiatrist & Psychotherapist',
+ 'Creates an immediate sense of peace and safety in her consultations. Highly empathetic and professional, particularly recommended for anxiety and trauma.',
+ 'Centre Medical Kmar, El Mourouj', 'El Mourouj', 36.7155, 10.2163,
+ '+216 92 310 135', '', '',
+ ARRAY['Arabic', 'French'], 10,
+ ARRAY['Anxiety', 'Trauma', 'Psychotherapy', 'Women''s health', 'Stress'],
+ '{"Mon–Fri": "9:00–17:00", "Saturday": "9:00–13:00", "Sunday": "Closed"}'::jsonb,
+ 'basic', true, NOW() + INTERVAL '180 days', true),
+
+('Dr. Imene Jallouli', 'Psychiatrist & Psychotherapist',
+ 'Known for quick responsiveness and attentive listening. Offers emergency phone support between sessions.',
+ 'Violette Medical Center, Cite Ennasr 2, Ariana', 'Ariana', 36.8671, 10.1710,
+ '+216 92 511 980', '', '',
+ ARRAY['Arabic', 'French', 'English'], 8,
+ ARRAY['Adult psychiatry', 'Psychotherapy', 'Emergency support', 'Anxiety'],
+ '{"Mon–Fri": "9:00–18:00", "Saturday": "9:00–13:00", "Sunday": "Closed"}'::jsonb,
+ 'basic', true, NOW() + INTERVAL '180 days', false),
+
+('Dr. Tasnim Nsibi', 'Psychiatrist, Sexologist & Psychogeriatrician',
+ 'Multi-specialist with expertise spanning psychiatry, sexology, addictology, and psychogeriatrics. One of the most highly reviewed practitioners in the Tunis area.',
+ 'Elysee Medical, El Mourouj', 'El Mourouj', 36.7351, 10.2118,
+ '+216 98 684 582', '', '',
+ ARRAY['Arabic', 'French'], 18,
+ ARRAY['Psychiatry', 'Sexology', 'Geriatrics', 'Addictology', 'Psychotherapy'],
+ '{"Mon–Fri": "9:00–17:00", "Saturday": "9:00–16:30", "Sunday": "Closed"}'::jsonb,
+ 'premium', true, NOW() + INTERVAL '180 days', true);
+
 -- Update sequences to avoid conflicts
 SELECT setval('users_id_seq', (SELECT MAX(id) FROM users));
 SELECT setval('patients_id_seq', (SELECT MAX(id) FROM patients));
