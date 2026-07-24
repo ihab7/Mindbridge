@@ -100,3 +100,37 @@ body {
     transition-timing-function: ease-in-out;
   }
 }
+
+/* Practitioner-finder map (Leaflet): theme-aware popup/tooltip chrome and a
+   tactile hover-lift on pins. Scoped to leaflet's own classes so this can't
+   leak into any other component. */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+}
+.leaflet-popup-close-button {
+  color: hsl(var(--muted-foreground)) !important;
+}
+.mb-tooltip {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 9px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+.mb-tooltip::before {
+  border-top-color: hsl(var(--border)) !important;
+}
+.leaflet-marker-icon .mb-pin {
+  transition: transform 0.15s ease;
+}
+.leaflet-marker-icon:hover .mb-pin {
+  transform: scale(1.18) rotate(-45deg);
+}
+.leaflet-marker-icon {
+  cursor: pointer;
+}

@@ -4,6 +4,7 @@ import { Inter, DM_Sans } from 'next/font/google'
 import { cookies } from "next/headers"
 
 import './globals.css'
+import 'leaflet/dist/leaflet.css'
 import { directionForLocale, defaultLocale, isLocale, type Locale } from '@/i18n/routing'
 import { I18nProvider } from "@/components/i18n-provider"
 import { ThemeProvider } from "@/components/theme-provider"

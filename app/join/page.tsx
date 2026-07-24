@@ -2,9 +2,9 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
-import { useJsApiLoader } from "@react-google-maps/api"
 import { Activity, Loader2, MapPin, CheckCircle2 } from "lucide-react"
 import { SPECIALTY_TAGS, LANGUAGE_OPTIONS, WEEKDAYS } from "@/lib/directory"
+import { geocodeAddress } from "@/lib/geocode"
 
 type PlanId = "basic" | "premium"
 
@@ -38,11 +38,6 @@ const PLANS: Record<PlanId, { name: string; price: string; features: [string, bo
 }
 
 export default function PractitionerRegisterPage() {
-  const { isLoaded } = useJsApiLoader({
-    id: "mindbridge-google-maps",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY ?? "",
-  })
-
   const [plan, setPlan] = useState<PlanId>("basic")
   const [fullName, setFullName] = useState("")
   const [specialty, setSpecialty] = useState("")
@@ -75,19 +70,19 @@ export default function PractitionerRegisterPage() {
   }
 
   async function handleLocate() {
-    if (!isLoaded || !window.google || (!address && !city)) return
+    if (!address && !city) return
     setGeocoding(true)
-    const geocoder = new google.maps.Geocoder()
-    geocoder.geocode({ address: `${address}, ${city}, Tunisia` }, (results, status) => {
-      setGeocoding(false)
-      if (status === "OK" && results && results[0]) {
-        const loc = results[0].geometry.location
-        setCoords({ lat: loc.lat(), lng: loc.lng() })
+    try {
+      const result = await geocodeAddress(`${address}, ${city}, Tunisia`)
+      if (result) {
+        setCoords({ lat: result.lat, lng: result.lng })
       } else {
         setError("Could not locate this address automatically — enter coordinates manually below.")
         setManualCoords(true)
       }
-    })
+    } finally {
+      setGeocoding(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -272,7 +267,7 @@ export default function PractitionerRegisterPage() {
               <button
                 type="button"
                 onClick={handleLocate}
-                disabled={geocoding || !isLoaded}
+                disabled={geocoding}
                 className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-60"
               >
                 {geocoding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}

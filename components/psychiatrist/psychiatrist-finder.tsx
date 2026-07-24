@@ -2,12 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { Search, MapPin, Building2 } from "lucide-react"
 import { usePractitioners } from "@/hooks/use-practitioners"
 import { isOpenNow } from "@/lib/directory"
-import { PractitionerMap } from "./practitioner-map"
 import { PractitionerCard } from "./practitioner-card"
 import { PractitionerProfile } from "./practitioner-profile"
+
+// Leaflet touches `window` at import time, so it can only run in the
+// browser -- ssr: false keeps it out of the server-rendered HTML entirely.
+const PractitionerMap = dynamic(() => import("./practitioner-map").then((m) => m.PractitionerMap), {
+  ssr: false,
+  loading: () => <div className="h-[220px] w-full animate-pulse rounded-2xl bg-muted" />,
+})
 
 const TUNIS_CENTER = { lat: 36.81, lng: 10.18 }
 type Filter = "featured" | "verified" | "open_now"
@@ -136,6 +143,7 @@ export function PsychiatristFinder({ isLoggedIn }: { isLoggedIn: boolean }) {
             userLocation={userLocation}
             selectedId={selectedId}
             onSelect={setSelectedId}
+            radiusKm={radiusKm}
           />
         )}
       </div>

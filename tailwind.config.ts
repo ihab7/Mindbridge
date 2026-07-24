@@ -88,11 +88,16 @@ const config: Config = {
           '0%': { transform: 'translateY(-8px) rotate(0deg)', opacity: '1' },
           '100%': { transform: 'translateY(56px) rotate(200deg)', opacity: '0' },
         },
+        'pulse-ring': {
+          '0%': { transform: 'scale(0.6)', opacity: '0.7' },
+          '100%': { transform: 'scale(2.4)', opacity: '0' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'confetti-fall': 'confetti-fall 1.6s ease-in forwards',
+        'pulse-ring': 'pulse-ring 1.8s cubic-bezier(0.2,0.6,0.4,1) infinite',
       },
     },
   },
