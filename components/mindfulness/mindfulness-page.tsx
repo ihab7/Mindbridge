@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useT } from "@/components/i18n-provider";
 import { BreathingSession } from "@/components/mindfulness/session";
+import { ProgramBanner } from "@/components/mindfulness/program-banner";
 
 export type ExerciseType =
   | "one_minute"
@@ -115,6 +116,8 @@ export function MindfulnessPage() {
 
   return (
     <div className="space-y-6">
+      <ProgramBanner />
+
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">

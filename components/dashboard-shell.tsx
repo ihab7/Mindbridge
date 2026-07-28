@@ -4,7 +4,7 @@ import React from "react"
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Activity, LogOut, LayoutDashboard, Users, Bell, MessageCircle, Leaf } from "lucide-react"
+import { Activity, LogOut, LayoutDashboard, Users, Bell, MessageCircle, Leaf, Route } from "lucide-react"
 import type { User } from "@/lib/auth"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -24,11 +24,28 @@ const practitionerLinks = [
   { href: "/practitioner/messages", labelKey: "nav.messages", icon: MessageCircle },
 ]
 
-export function DashboardShell({ user, children }: { user: User; children: React.ReactNode }) {
+export function DashboardShell({
+  user,
+  children,
+  hasActiveProgram = false,
+  programNeedsAttention = false,
+}: {
+  user: User
+  children: React.ReactNode
+  /** Patient only: whether to show the "My Program" nav tab at all. */
+  hasActiveProgram?: boolean
+  /** Patient only: shows an attention dot on the "My Program" tab. */
+  programNeedsAttention?: boolean
+}) {
   const pathname = usePathname()
   const router = useRouter()
   const t = useT()
-  const links = user.role === "patient" ? patientLinks : practitionerLinks
+  const links =
+    user.role === "patient" && hasActiveProgram
+      ? [...patientLinks, { href: "/patient/program", labelKey: "nav.myProgram", icon: Route }]
+      : user.role === "patient"
+        ? patientLinks
+        : practitionerLinks
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" })
@@ -60,7 +77,12 @@ export function DashboardShell({ user, children }: { user: User; children: React
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
+                    <span className="relative">
+                      <Icon className="h-4 w-4" />
+                      {link.href === "/patient/program" && programNeedsAttention && (
+                        <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                      )}
+                    </span>
                     {t(link.labelKey)}
                   </Link>
                 )
@@ -99,7 +121,12 @@ export function DashboardShell({ user, children }: { user: User; children: React
                     : "text-muted-foreground hover:bg-muted"
                 }`}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <span className="relative">
+                  <Icon className="h-3.5 w-3.5" />
+                  {link.href === "/patient/program" && programNeedsAttention && (
+                    <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                  )}
+                </span>
                 {t(link.labelKey)}
               </Link>
             )

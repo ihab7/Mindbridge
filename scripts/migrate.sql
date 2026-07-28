@@ -175,6 +175,37 @@ CREATE INDEX IF NOT EXISTS idx_alerts_status ON alerts(status);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_patients_practitioner ON patients(practitioner_id);
 
+-- Structured programs (multi-week, practitioner-assigned, session-based)
+CREATE TABLE IF NOT EXISTS program_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  program_id TEXT NOT NULL DEFAULT 'anxiety-4week-v1',
+  patient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  practitioner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  practitioner_note TEXT NOT NULL DEFAULT '',
+  status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed')),
+  assigned_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_at TIMESTAMP WITH TIME ZONE
+);
+-- Only one active assignment per patient at a time (they can be re-assigned after completion)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_assignment_per_patient
+  ON program_assignments(patient_id) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_program_assignments_patient ON program_assignments(patient_id);
+CREATE INDEX IF NOT EXISTS idx_program_assignments_practitioner ON program_assignments(practitioner_id);
+
+CREATE TABLE IF NOT EXISTS session_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  assignment_id UUID NOT NULL REFERENCES program_assignments(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  mood_before INTEGER CHECK (mood_before BETWEEN 1 AND 5),
+  mood_after INTEGER CHECK (mood_after BETWEEN 1 AND 5),
+  reflection_answer TEXT NOT NULL DEFAULT '',
+  selected_triggers TEXT[] NOT NULL DEFAULT '{}',
+  completed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  UNIQUE(assignment_id, session_id)
+);
+CREATE INDEX IF NOT EXISTS idx_session_progress_assignment ON session_progress(assignment_id);
+CREATE INDEX IF NOT EXISTS idx_session_progress_completed_at ON session_progress(completed_at);
+
 -- "Find a Psychiatrist Near You" directory (B2B: practitioners/cabinets pay
 -- to be listed; patients browse and see contact info for free once logged
 -- in). Independent of `users` -- a directory listing does not require the

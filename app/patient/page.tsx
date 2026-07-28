@@ -10,6 +10,7 @@ import { SessionPrepCard } from "@/components/patient/session-prep-card"
 import { getServerI18n } from "@/lib/server-i18n"
 import { PractitionerFeedbackCard } from "@/components/patient/practitioner-feedback-card"
 import { DailyWellnessTasks } from "@/components/patient/daily-wellness-tasks"
+import { ProgramWidget } from "@/components/patient/program-widget"
 
 export default async function PatientDashboard() {
   const user = await getSession()
@@ -68,6 +69,8 @@ export default async function PatientDashboard() {
       <div className="max-w-2xl">
         <PractitionerFeedbackCard />
       </div>
+
+      <ProgramWidget />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="order-1">
