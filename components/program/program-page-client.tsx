@@ -4,25 +4,28 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { ClipboardList, Loader2 } from "lucide-react"
 import { useI18n, useT } from "@/components/i18n-provider"
-import { ANXIETY_PROGRAM, allSessionIds, findSession } from "@/lib/program/content"
+import { allSessionIds, findSession } from "@/lib/program/content"
+import { composeProgramFromPlan } from "@/lib/program/composeProgram"
+import { defaultProgramPlan } from "@/lib/program/sessionLibrary"
 import { isSessionUnlocked, nextSession as computeNextSession } from "@/lib/program/progress"
-import type { SessionProgressEntry } from "@/lib/program/types"
+import type { PlanEntry, Program, SessionProgressEntry } from "@/lib/program/types"
 import { ProgramHero } from "./program-hero"
 import { WeekCard } from "./week-card"
 import { SessionPlayer } from "./session-player"
 import type { SessionCompletionPayload } from "./use-session-player"
 
-function findSessionAfter(sessionId: string) {
-  const order = allSessionIds(ANXIETY_PROGRAM)
+function findSessionAfter(program: Program, sessionId: string) {
+  const order = allSessionIds(program)
   const idx = order.indexOf(sessionId)
   if (idx === -1 || idx === order.length - 1) return null
-  return findSession(ANXIETY_PROGRAM, order[idx + 1])
+  return findSession(program, order[idx + 1])
 }
 
 type ApiResponse = {
   hasAssignment: boolean
   practitionerName: string
   progress: SessionProgressEntry[]
+  plan: PlanEntry[]
 }
 
 export function ProgramPageClient() {
@@ -60,7 +63,8 @@ export function ProgramPageClient() {
     const openId = searchParams.get("open")
     if (!openId) return
     appliedOpenParam.current = true
-    if (isSessionUnlocked(ANXIETY_PROGRAM, data.progress, openId)) {
+    const program = composeProgramFromPlan(data.plan.length > 0 ? data.plan : defaultProgramPlan())
+    if (isSessionUnlocked(program, data.progress, openId)) {
       setActiveSessionId(openId)
     }
   }, [data, searchParams])
@@ -84,8 +88,9 @@ export function ProgramPageClient() {
   }
 
   const { progress, practitionerName } = data
+  const program = composeProgramFromPlan(data.plan.length > 0 ? data.plan : defaultProgramPlan())
   const done = new Set(progress.map((p) => p.sessionId))
-  const next = computeNextSession(ANXIETY_PROGRAM, progress)
+  const next = computeNextSession(program, progress)
 
   async function handleComplete(payload: SessionCompletionPayload): Promise<boolean> {
     if (!activeSessionId) return false
@@ -118,15 +123,15 @@ export function ProgramPageClient() {
     }
   }
 
-  const activeSession = activeSessionId ? findSession(ANXIETY_PROGRAM, activeSessionId) : null
-  const upcoming = activeSessionId ? findSessionAfter(activeSessionId) : null
+  const activeSession = activeSessionId ? findSession(program, activeSessionId) : null
+  const upcoming = activeSessionId ? findSessionAfter(program, activeSessionId) : null
 
   return (
     <div className="flex flex-col gap-6">
-      <ProgramHero program={ANXIETY_PROGRAM} progress={progress} practitionerName={practitionerName} locale={locale} />
+      <ProgramHero program={program} progress={progress} practitionerName={practitionerName} locale={locale} />
 
       <div className="flex flex-col gap-3">
-        {ANXIETY_PROGRAM.weeks.map((week) => (
+        {program.weeks.map((week) => (
           <WeekCard
             key={week.weekNumber}
             week={week}
@@ -135,7 +140,7 @@ export function ProgramPageClient() {
             nextSessionId={next?.session.id ?? null}
             defaultOpen={week.weekNumber === (next?.week.weekNumber ?? 1)}
             onSelectSession={(sessionId) => {
-              if (!isSessionUnlocked(ANXIETY_PROGRAM, progress, sessionId)) return
+              if (!isSessionUnlocked(program, progress, sessionId)) return
               setActiveSessionId(sessionId)
             }}
           />

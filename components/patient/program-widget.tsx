@@ -4,14 +4,16 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { useI18n, useT } from "@/components/i18n-provider"
-import { ANXIETY_PROGRAM } from "@/lib/program/content"
+import { composeProgramFromPlan } from "@/lib/program/composeProgram"
+import { defaultProgramPlan } from "@/lib/program/sessionLibrary"
 import { currentWeekNumber, nextSession, percentComplete } from "@/lib/program/progress"
-import type { SessionProgressEntry } from "@/lib/program/types"
+import type { PlanEntry, SessionProgressEntry } from "@/lib/program/types"
 
 type ApiResponse = {
   hasAssignment: boolean
   practitionerName: string
   progress: SessionProgressEntry[]
+  plan: PlanEntry[]
 }
 
 export function ProgramWidget() {
@@ -37,14 +39,15 @@ export function ProgramWidget() {
   if (!data || !data.hasAssignment) return null
 
   const { progress } = data
-  const pct = percentComplete(ANXIETY_PROGRAM, progress)
-  const week = currentWeekNumber(ANXIETY_PROGRAM, progress)
-  const next = nextSession(ANXIETY_PROGRAM, progress)
+  const program = composeProgramFromPlan(data.plan.length > 0 ? data.plan : defaultProgramPlan())
+  const pct = percentComplete(program, progress)
+  const week = currentWeekNumber(program, progress)
+  const next = nextSession(program, progress)
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <p className="text-xs font-semibold uppercase tracking-widest text-primary">{t("program.widget.label")}</p>
-      <h3 className="mt-1 text-base font-semibold text-card-foreground">{ANXIETY_PROGRAM.title[locale]}</h3>
+      <h3 className="mt-1 text-base font-semibold text-card-foreground">{program.title[locale]}</h3>
 
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
         <div
@@ -53,7 +56,7 @@ export function ProgramWidget() {
         />
       </div>
       <p className="mt-1.5 text-xs text-muted-foreground">
-        {t("program.progress.percentWeek", { pct, week })} · {t("program.week.doneOfTotal", { done: progress.length, total: ANXIETY_PROGRAM.totalSessions })}
+        {t("program.progress.percentWeek", { pct, week })} · {t("program.week.doneOfTotal", { done: progress.length, total: program.totalSessions })}
       </p>
 
       {next && (

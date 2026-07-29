@@ -13,12 +13,13 @@ export async function GET() {
   const data = await getAssignmentWithProgress(user.id)
 
   if (!data || data.assignment.status !== "active") {
-    return NextResponse.json({ hasAssignment: false, practitionerName: "", progress: [] })
+    return NextResponse.json({ hasAssignment: false, practitionerName: "", progress: [], plan: [] })
   }
 
   return NextResponse.json({
     hasAssignment: true,
     practitionerName: data.practitionerName,
     progress: data.progress,
+    plan: data.assignment.plan,
   })
 }

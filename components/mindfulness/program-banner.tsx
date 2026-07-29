@@ -4,14 +4,16 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ClipboardList, ArrowRight } from "lucide-react"
 import { useI18n, useT } from "@/components/i18n-provider"
-import { ANXIETY_PROGRAM } from "@/lib/program/content"
+import { composeProgramFromPlan } from "@/lib/program/composeProgram"
+import { defaultProgramPlan } from "@/lib/program/sessionLibrary"
 import { currentWeekNumber, nextSession } from "@/lib/program/progress"
-import type { SessionProgressEntry } from "@/lib/program/types"
+import type { PlanEntry, SessionProgressEntry } from "@/lib/program/types"
 
 type ApiResponse = {
   hasAssignment: boolean
   practitionerName: string
   progress: SessionProgressEntry[]
+  plan: PlanEntry[]
 }
 
 export function ProgramBanner() {
@@ -36,8 +38,9 @@ export function ProgramBanner() {
 
   if (!data || !data.hasAssignment) return null
 
-  const week = currentWeekNumber(ANXIETY_PROGRAM, data.progress)
-  const next = nextSession(ANXIETY_PROGRAM, data.progress)
+  const program = composeProgramFromPlan(data.plan.length > 0 ? data.plan : defaultProgramPlan())
+  const week = currentWeekNumber(program, data.progress)
+  const next = nextSession(program, data.progress)
   if (!next) return null
 
   return (

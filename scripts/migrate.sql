@@ -192,6 +192,55 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_one_active_assignment_per_patient
 CREATE INDEX IF NOT EXISTS idx_program_assignments_patient ON program_assignments(patient_id);
 CREATE INDEX IF NOT EXISTS idx_program_assignments_practitioner ON program_assignments(practitioner_id);
 
+-- AI-assisted care planning: an assignment now carries the composed plan
+-- itself (session ids + week + order), not just a reference to a fixed
+-- program. `source` records how the plan was drafted; `practitioner_edits`
+-- captures what the practitioner changed relative to the draft, for the
+-- audit trail.
+ALTER TABLE program_assignments ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'manual'
+  CHECK (source IN ('ai', 'rules', 'manual'));
+ALTER TABLE program_assignments ADD COLUMN IF NOT EXISTS plan JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE program_assignments ADD COLUMN IF NOT EXISTS ai_summary TEXT NOT NULL DEFAULT '';
+ALTER TABLE program_assignments ADD COLUMN IF NOT EXISTS practitioner_edits JSONB;
+
+-- Backfill: existing rows (assigned before AI-assisted planning existed) get
+-- the original fixed 18-session, 4-week program mapped into `plan` — the
+-- exact order DEFAULT_PROGRAM reproduces in lib/program/sessionLibrary.ts —
+-- so the patient-facing program view keeps rendering unchanged for them.
+UPDATE program_assignments
+SET plan = '[
+  {"session_id":"w1s1","week":1,"order":0}, {"session_id":"w1s2","week":1,"order":1},
+  {"session_id":"w1s3","week":1,"order":2}, {"session_id":"w1s4","week":1,"order":3},
+  {"session_id":"w2s1","week":2,"order":4}, {"session_id":"w2s2","week":2,"order":5},
+  {"session_id":"w2s3","week":2,"order":6}, {"session_id":"w2s4","week":2,"order":7},
+  {"session_id":"w2s5","week":2,"order":8},
+  {"session_id":"w3s1","week":3,"order":9}, {"session_id":"w3s2","week":3,"order":10},
+  {"session_id":"w3s3","week":3,"order":11}, {"session_id":"w3s4","week":3,"order":12},
+  {"session_id":"w3s5","week":3,"order":13},
+  {"session_id":"w4s1","week":4,"order":14}, {"session_id":"w4s2","week":4,"order":15},
+  {"session_id":"w4s3","week":4,"order":16}, {"session_id":"w4s4","week":4,"order":17}
+]'::jsonb
+WHERE plan = '[]'::jsonb AND program_id = 'anxiety-4week-v1';
+
+-- Audit trail for AI-drafted care plans, independent of whether they were
+-- ever approved (kept even if the practitioner discards/redrafts).
+CREATE TABLE IF NOT EXISTS program_proposal_audit (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  patient_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  practitioner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  source VARCHAR(20) NOT NULL CHECK (source IN ('ai', 'rules', 'manual')),
+  session_ids TEXT[] NOT NULL DEFAULT '{}',
+  proposal JSONB NOT NULL DEFAULT '{}',
+  warnings TEXT[] NOT NULL DEFAULT '{}',
+  approved BOOLEAN NOT NULL DEFAULT false,
+  approved_at TIMESTAMP WITH TIME ZONE,
+  practitioner_edits JSONB,
+  assignment_id UUID REFERENCES program_assignments(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_program_proposal_audit_patient ON program_proposal_audit(patient_id);
+CREATE INDEX IF NOT EXISTS idx_program_proposal_audit_practitioner ON program_proposal_audit(practitioner_id);
+
 CREATE TABLE IF NOT EXISTS session_progress (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   assignment_id UUID NOT NULL REFERENCES program_assignments(id) ON DELETE CASCADE,

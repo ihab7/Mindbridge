@@ -2,7 +2,9 @@ export const runtime = "nodejs"
 
 import { NextResponse } from "next/server"
 import { getSession } from "@/lib/auth"
-import { ANXIETY_PROGRAM, findSession } from "@/lib/program/content"
+import { findSession } from "@/lib/program/content"
+import { composeProgramFromPlan } from "@/lib/program/composeProgram"
+import { defaultProgramPlan } from "@/lib/program/sessionLibrary"
 import { getActiveAssignmentForPatient, getProgressForAssignment, completeSession } from "@/lib/program/data"
 import { isSessionUnlocked } from "@/lib/program/progress"
 
@@ -32,8 +34,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const sessionId = clampText(body.sessionId, 20)
-    const found = findSession(ANXIETY_PROGRAM, sessionId)
-    if (!sessionId || !found) {
+    if (!sessionId) {
       return NextResponse.json({ error: "Unknown session" }, { status: 400 })
     }
 
@@ -42,8 +43,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No active program" }, { status: 404 })
     }
 
+    // The assigned plan — not the fixed original program — is the source of truth for which
+    // sessions exist and what order they unlock in; AI/rules-composed plans routinely include
+    // sessions outside the original 18.
+    const program = composeProgramFromPlan(assignment.plan.length > 0 ? assignment.plan : defaultProgramPlan())
+    const found = findSession(program, sessionId)
+    if (!found) {
+      return NextResponse.json({ error: "Unknown session" }, { status: 400 })
+    }
+
     const existingProgress = await getProgressForAssignment(assignment.id)
-    if (!isSessionUnlocked(ANXIETY_PROGRAM, existingProgress, sessionId)) {
+    if (!isSessionUnlocked(program, existingProgress, sessionId)) {
       return NextResponse.json({ error: "Session locked" }, { status: 409 })
     }
 

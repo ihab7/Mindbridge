@@ -43,6 +43,8 @@ export async function GET(
       practitionerNote: data.assignment.practitionerNote,
       status: data.assignment.status,
       assignedAt: data.assignment.assignedAt,
+      source: data.assignment.source,
+      plan: data.assignment.plan,
     },
     progress: data.progress,
   })

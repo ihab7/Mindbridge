@@ -909,7 +909,7 @@ export function getProgramById(programId: string) {
   return programId === ANXIETY_PROGRAM.id ? ANXIETY_PROGRAM : null
 }
 
-export function findSession(program: typeof ANXIETY_PROGRAM, sessionId: string) {
+export function findSession(program: Program, sessionId: string) {
   for (const week of program.weeks) {
     const session = week.sessions.find((s) => s.id === sessionId)
     if (session) return { session, week }
@@ -917,6 +917,6 @@ export function findSession(program: typeof ANXIETY_PROGRAM, sessionId: string) 
   return null
 }
 
-export function allSessionIds(program: typeof ANXIETY_PROGRAM): string[] {
+export function allSessionIds(program: Program): string[] {
   return program.weeks.flatMap((w) => w.sessions.map((s) => s.id))
 }
