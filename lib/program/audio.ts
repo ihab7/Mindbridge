@@ -1,25 +1,8 @@
 import type { ProgramSoundId } from "./types"
+import { startNatureSound, type NatureNode } from "@/lib/audio/natureSounds"
 
 type ToneDirection = "in" | "out"
 type SfxKind = "tap" | "select" | "toggle" | "tick" | "chime" | "complete"
-
-function createBrownNoise(ctx: AudioContext): AudioBufferSourceNode {
-  const buffer = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate)
-  const data = buffer.getChannelData(0)
-  let last = 0
-  for (let i = 0; i < data.length; i++) {
-    const white = Math.random() * 2 - 1
-    data[i] = (last + 0.02 * white) / 1.02
-    last = data[i]
-    data[i] *= 3.5
-  }
-  const source = ctx.createBufferSource()
-  source.buffer = buffer
-  source.loop = true
-  return source
-}
-
-type NatureNode = AudioBufferSourceNode | OscillatorNode
 
 /**
  * Dual-channel session audio: guide tones and nature sounds are independent
@@ -81,69 +64,13 @@ class SessionAudio {
     const targetVol = this.masterMuted ? 0 : this.natureVol
     gain.gain.setTargetAtTime(targetVol, ctx.currentTime, 0.3)
 
-    const push = (n: NatureNode) => this.natureNodes.push(n)
-    const sound = this.currentSound
-    const stillActive = () => this.natureGain === gain
-
-    if (sound === "rain") {
-      const source = createBrownNoise(ctx)
-      const filter = ctx.createBiquadFilter()
-      const level = ctx.createGain()
-      filter.type = "highpass"
-      filter.frequency.value = 400
-      level.gain.value = 0.35
-      source.connect(filter); filter.connect(level); level.connect(gain)
-      source.start(); push(source)
-
-      const drip = () => {
-        if (!stillActive()) return
-        const o = ctx.createOscillator(); const g = ctx.createGain()
-        o.frequency.value = 1200 + Math.random() * 800
-        g.gain.setValueAtTime(0.03, ctx.currentTime)
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
-        o.connect(g); g.connect(gain); o.start(); o.stop(ctx.currentTime + 0.3)
-        this.natureTimers.push(setTimeout(drip, 400 + Math.random() * 2000))
-      }
-      this.natureTimers.push(setTimeout(drip, 500))
-    } else if (sound === "ocean") {
-      for (let i = 0; i < 3; i++) {
-        const source = createBrownNoise(ctx)
-        const filter = ctx.createBiquadFilter()
-        const level = ctx.createGain()
-        filter.type = "bandpass"; filter.frequency.value = 100 + i * 80; filter.Q.value = 0.5
-        level.gain.value = 0.12
-        source.connect(filter); filter.connect(level); level.connect(gain)
-        source.start(); push(source)
-
-        const lfo = ctx.createOscillator(); const lfoGain = ctx.createGain()
-        lfo.frequency.value = 0.07 + i * 0.03; lfoGain.gain.value = 0.1
-        lfo.connect(lfoGain); lfoGain.connect(level.gain); lfo.start(); push(lfo)
-      }
-    } else if (sound === "forest") {
-      const source = createBrownNoise(ctx)
-      const filter = ctx.createBiquadFilter()
-      const level = ctx.createGain()
-      filter.type = "bandpass"; filter.frequency.value = 300; filter.Q.value = 1
-      level.gain.value = 0.07
-      source.connect(filter); filter.connect(level); level.connect(gain)
-      source.start(); push(source)
-
-      const chirp = () => {
-        if (!stillActive()) return
-        const o = ctx.createOscillator(); const g = ctx.createGain()
-        const freq = 1800 + Math.random() * 1200
-        o.type = "sine"
-        o.frequency.setValueAtTime(freq, ctx.currentTime)
-        o.frequency.linearRampToValueAtTime(freq * 1.3, ctx.currentTime + 0.1)
-        o.frequency.linearRampToValueAtTime(freq, ctx.currentTime + 0.2)
-        g.gain.setValueAtTime(0, ctx.currentTime)
-        g.gain.linearRampToValueAtTime(0.035, ctx.currentTime + 0.05)
-        g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.25)
-        o.connect(g); g.connect(gain); o.start(); o.stop(ctx.currentTime + 0.3)
-        this.natureTimers.push(setTimeout(chirp, 700 + Math.random() * 2500))
-      }
-      this.natureTimers.push(setTimeout(chirp, 400))
-    }
+    startNatureSound(this.currentSound, {
+      ctx,
+      destination: gain,
+      pushNode: (n: NatureNode) => this.natureNodes.push(n),
+      pushTimer: (t) => this.natureTimers.push(t),
+      isStillActive: () => this.natureGain === gain,
+    })
   }
 
   stopNature() {

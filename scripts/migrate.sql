@@ -288,3 +288,36 @@ CREATE INDEX IF NOT EXISTS idx_practitioners_listing
   ON practitioners(is_subscribed, subscription_expires_at);
 CREATE INDEX IF NOT EXISTS idx_practitioners_plan ON practitioners(plan);
 CREATE INDEX IF NOT EXISTS idx_practitioners_user ON practitioners(user_id);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Sleep Stories: static content now (see lib/sleep-stories/stories.ts) --
+-- titles, transcripts, and audio paths live in the repo, not the database,
+-- so there's no publish workflow and no publish-flag/language-filter chain
+-- to get out of sync. Only play history remains dynamic, keyed by the
+-- story's slug (plain text) instead of a foreign key into a stories table.
+-- ─────────────────────────────────────────────────────────────────────────
+DROP TABLE IF EXISTS sleep_story_recommendations CASCADE;
+DROP TABLE IF EXISTS sleep_stories CASCADE;
+
+CREATE TABLE IF NOT EXISTS sleep_story_plays (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  story_id       TEXT NOT NULL,
+  patient_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  played_at      TIMESTAMPTZ DEFAULT NOW(),
+  completed      BOOLEAN DEFAULT false,
+  timer_minutes  INTEGER
+);
+-- Migrate an existing UUID story_id column (from the old sleep_stories FK) to
+-- plain text holding the slug -- old rows keep their stringified UUID, which
+-- no longer resolves to anything, but the play-history rows themselves stay.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'sleep_story_plays' AND column_name = 'story_id' AND data_type = 'uuid'
+  ) THEN
+    ALTER TABLE sleep_story_plays ALTER COLUMN story_id TYPE TEXT USING story_id::text;
+  END IF;
+END $$;
+CREATE INDEX IF NOT EXISTS idx_sleep_story_plays_patient ON sleep_story_plays(patient_id);
+CREATE INDEX IF NOT EXISTS idx_sleep_story_plays_story ON sleep_story_plays(story_id);

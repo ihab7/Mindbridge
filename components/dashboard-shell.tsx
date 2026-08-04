@@ -4,7 +4,7 @@ import React from "react"
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Activity, LogOut, LayoutDashboard, Users, Bell, MessageCircle, Leaf, Route } from "lucide-react"
+import { Activity, LogOut, LayoutDashboard, Users, Bell, MessageCircle, Leaf, Route, Moon } from "lucide-react"
 import type { User } from "@/lib/auth"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -15,6 +15,7 @@ const patientLinks = [
   { href: "/patient", labelKey: "nav.dashboard", icon: LayoutDashboard },
   { href: "/patient/messages", labelKey: "nav.messages", icon: MessageCircle },
   { href: "/mindfulness", labelKey: "nav.mindfulness", icon: Leaf },
+  { href: "/sleep-stories", labelKey: "nav.sleepStories", icon: Moon },
 ]
 
 const practitionerLinks = [

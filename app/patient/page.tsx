@@ -11,6 +11,7 @@ import { getServerI18n } from "@/lib/server-i18n"
 import { PractitionerFeedbackCard } from "@/components/patient/practitioner-feedback-card"
 import { DailyWellnessTasks } from "@/components/patient/daily-wellness-tasks"
 import { ProgramWidget } from "@/components/patient/program-widget"
+import { SleepNudgeBanner } from "@/components/sleep-stories/SleepNudgeBanner"
 
 export default async function PatientDashboard() {
   const user = await getSession()
@@ -81,6 +82,7 @@ export default async function PatientDashboard() {
         </div>
         <div className="order-2 flex flex-col gap-6">
           <MoodChart entries={chartEntries} />
+          <SleepNudgeBanner />
           <MedicationChart entries={chartEntries} />
         </div>
       </div>
