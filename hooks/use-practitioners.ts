@@ -6,7 +6,7 @@ export type PractitionerWithDistance = Practitioner & { distanceKm: number | nul
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-export function usePractitioners(userLocation: { lat: number; lng: number } | null, radiusKm = 20) {
+export function usePractitioners(origin: { lat: number; lng: number } | null, radiusKm = 20) {
   const { data, error, isLoading } = useSWR<{ practitioners: Practitioner[]; isLoggedIn: boolean }>(
     "/api/directory/practitioners",
     fetcher,
@@ -18,12 +18,12 @@ export function usePractitioners(userLocation: { lat: number; lng: number } | nu
     const withDistance = raw.map((p) => ({
       ...p,
       distanceKm:
-        userLocation && p.latitude != null && p.longitude != null
-          ? getDistanceKm(userLocation.lat, userLocation.lng, p.latitude, p.longitude)
+        origin && p.latitude != null && p.longitude != null
+          ? getDistanceKm(origin.lat, origin.lng, p.latitude, p.longitude)
           : null,
     }))
 
-    const withinRadius = userLocation
+    const withinRadius = origin
       ? withDistance.filter((p) => p.distanceKm === null || p.distanceKm <= radiusKm)
       : withDistance
 
@@ -34,7 +34,7 @@ export function usePractitioners(userLocation: { lat: number; lng: number } | nu
       if (b.distanceKm === null) return -1
       return a.distanceKm - b.distanceKm
     })
-  }, [data, userLocation, radiusKm])
+  }, [data, origin, radiusKm])
 
   return {
     practitioners,

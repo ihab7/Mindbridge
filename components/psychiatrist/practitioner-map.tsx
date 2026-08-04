@@ -7,9 +7,19 @@ import { Plus, Minus, LocateFixed, Maximize2, Minimize2 } from "lucide-react"
 import L from "leaflet"
 import type { PractitionerWithDistance } from "@/hooks/use-practitioners"
 
-const TUNIS_CENTER: [number, number] = [36.81, 10.18]
+// Zoomed-out country view used only when there is no search origin yet --
+// not a distance/search fallback, purely a map viewport default so the map
+// isn't blank. See psychiatrist-finder.tsx for the origin prompt state.
+const TUNISIA_VIEW_CENTER: [number, number] = [34.0, 9.5]
+const TUNISIA_VIEW_ZOOM = 6
 const COLLAPSED_HEIGHT = 220
 const EXPANDED_HEIGHT = 420
+
+function zoomForRadius(radiusKm: number): number {
+  if (radiusKm <= 10) return 13
+  if (radiusKm <= 20) return 12
+  return 11
+}
 
 const TILE_URLS = {
   dark: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
@@ -71,19 +81,19 @@ function MapController({ center, zoom }: { center: [number, number] | null; zoom
   return null
 }
 
-// Fits every marker (practitioners + user) in view when nothing is selected.
-// Without this, a fixed zoom can leave farther-out practitioners outside the
-// map's visible bounds in a short container.
-function FitBoundsController({ positions }: { positions: [number, number][] }) {
+// Flies to the search origin (at a zoom level fit to the current radius)
+// whenever the origin or radius changes, as long as no practitioner is
+// selected. Falls back to the zoomed-out country view when there's no
+// origin at all -- e.g. right after "Modifier" clears the current one.
+function OriginController({ lat, lng, radiusKm }: { lat: number | null; lng: number | null; radiusKm: number }) {
   const map = useMap()
   useEffect(() => {
-    if (positions.length === 0) return
-    if (positions.length === 1) {
-      map.setView(positions[0], 13)
-      return
+    if (lat != null && lng != null) {
+      map.flyTo([lat, lng], zoomForRadius(radiusKm), { animate: true, duration: 0.8 })
+    } else {
+      map.setView(TUNISIA_VIEW_CENTER, TUNISIA_VIEW_ZOOM)
     }
-    map.fitBounds(L.latLngBounds(positions), { padding: [28, 28], maxZoom: 14 })
-  }, [positions, map])
+  }, [lat, lng, radiusKm, map])
   return null
 }
 
@@ -117,11 +127,11 @@ function ScrollZoomOnHover() {
 }
 
 function MapControls({
-  userLocation,
+  origin,
   expanded,
   onToggleExpand,
 }: {
-  userLocation: { lat: number; lng: number } | null
+  origin: { lat: number; lng: number } | null
   expanded: boolean
   onToggleExpand: () => void
 }) {
@@ -142,13 +152,13 @@ function MapControls({
         </button>
       </div>
 
-      {userLocation && (
+      {origin && (
         <button
           type="button"
           className={`${group} ${btn}`}
-          onClick={() => map.flyTo([userLocation.lat, userLocation.lng], 14, { animate: true, duration: 0.6 })}
-          aria-label="Recenter on my location"
-          title="Recenter on my location"
+          onClick={() => map.flyTo([origin.lat, origin.lng], 14, { animate: true, duration: 0.6 })}
+          aria-label="Recenter map on search origin"
+          title="Recenter map on search origin"
         >
           <LocateFixed className="h-4 w-4" />
         </button>
@@ -169,13 +179,13 @@ function MapControls({
 
 export function PractitionerMap({
   practitioners,
-  userLocation,
+  origin,
   selectedId,
   onSelect,
   radiusKm = 20,
 }: {
   practitioners: PractitionerWithDistance[]
-  userLocation: { lat: number; lng: number } | null
+  origin: { lat: number; lng: number } | null
   selectedId: string | null
   onSelect: (id: string) => void
   radiusKm?: number
@@ -186,7 +196,11 @@ export function PractitionerMap({
   useEffect(() => setMounted(true), [])
   const tileUrl = mounted && resolvedTheme === "dark" ? TILE_URLS.dark : TILE_URLS.light
 
-  const defaultCenter: [number, number] = userLocation ? [userLocation.lat, userLocation.lng] : TUNIS_CENTER
+  // Only the very first paint -- react-leaflet ignores changes to these
+  // props after mount, so all subsequent recentering goes through
+  // OriginController/MapController below via imperative map.flyTo calls.
+  const initialCenter: [number, number] = origin ? [origin.lat, origin.lng] : TUNISIA_VIEW_CENTER
+  const initialZoom = origin ? zoomForRadius(radiusKm) : TUNISIA_VIEW_ZOOM
 
   const selectedDoc = practitioners.find((p) => p.id === selectedId)
   const flyTarget: [number, number] | null =
@@ -201,20 +215,14 @@ export function PractitionerMap({
     [practitioners],
   )
 
-  const allPositions = useMemo<[number, number][]>(() => {
-    const pts = withCoords.map((p): [number, number] => [p.latitude, p.longitude])
-    if (userLocation) pts.push([userLocation.lat, userLocation.lng])
-    return pts
-  }, [withCoords, userLocation])
-
   return (
     <div
       className="relative overflow-hidden rounded-2xl border border-border"
       style={{ height: expanded ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT, width: "100%", transition: "height 0.25s ease" }}
     >
       <MapContainer
-        center={defaultCenter}
-        zoom={13}
+        center={initialCenter}
+        zoom={initialZoom}
         style={{ height: "100%", width: "100%" }}
         zoomControl={false}
         attributionControl={false}
@@ -227,20 +235,20 @@ export function PractitionerMap({
         {flyTarget ? (
           <MapController center={flyTarget} zoom={15} />
         ) : (
-          <FitBoundsController positions={allPositions} />
+          <OriginController lat={origin?.lat ?? null} lng={origin?.lng ?? null} radiusKm={radiusKm} />
         )}
         <ResizeOnChange trigger={expanded} />
         <ScrollZoomOnHover />
 
-        {userLocation && (
+        {origin && (
           <>
-            <Marker position={[userLocation.lat, userLocation.lng]} icon={ICONS.user}>
+            <Marker position={[origin.lat, origin.lng]} icon={ICONS.user}>
               <Popup>
                 <div className="text-xs font-semibold text-foreground">📍 Your location</div>
               </Popup>
             </Marker>
             <Circle
-              center={[userLocation.lat, userLocation.lng]}
+              center={[origin.lat, origin.lng]}
               radius={radiusKm * 1000}
               pathOptions={{ color: "#2a9d8f", fillColor: "#2a9d8f", fillOpacity: 0.04, weight: 1, dashArray: "4 4" }}
             />
@@ -280,7 +288,7 @@ export function PractitionerMap({
           </Marker>
         ))}
 
-        <MapControls userLocation={userLocation} expanded={expanded} onToggleExpand={() => setExpanded((v) => !v)} />
+        <MapControls origin={origin} expanded={expanded} onToggleExpand={() => setExpanded((v) => !v)} />
       </MapContainer>
 
       <div className="pointer-events-none absolute bottom-2 left-2 z-[1000] flex items-center gap-3 rounded-lg bg-card/90 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
