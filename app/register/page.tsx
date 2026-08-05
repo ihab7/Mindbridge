@@ -7,9 +7,13 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Activity, Loader2 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { LocaleAutoDetect } from "@/components/locale-auto-detect"
+import { useT } from "@/components/i18n-provider"
 
 export default function RegisterPage() {
   const router = useRouter()
+  const t = useT()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -32,14 +36,16 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(data.error)
       window.location.href = data.user.role === "practitioner" ? "/practitioner" : "/patient"
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Registration failed")
+      setError(err instanceof Error ? err.message : t("auth.errors.registrationFailed"))
       setLoading(false)
     }
   }
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="absolute right-4 top-4">
+      <LocaleAutoDetect />
+      <div className="absolute right-4 top-4 flex items-center gap-2 rtl:right-auto rtl:left-4">
+        <LanguageSwitcher compactOnMobile />
         <ThemeToggle />
       </div>
       <div className="w-full max-w-md">
@@ -50,8 +56,8 @@ export default function RegisterPage() {
             </div>
             <span className="text-xl font-semibold text-foreground">MindBridge</span>
           </Link>
-          <h1 className="mt-4 text-2xl font-bold text-foreground">Create your account</h1>
-          <p className="mt-2 text-muted-foreground">Join MindBridge to start monitoring</p>
+          <h1 className="mt-4 text-2xl font-bold text-foreground">{t("auth.register.title")}</h1>
+          <p className="mt-2 text-muted-foreground">{t("auth.register.subtitle")}</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-6">
@@ -64,7 +70,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                I am a...
+                {t("auth.register.roleLabel")}
               </label>
               <div className="flex gap-2">
                 <button
@@ -76,7 +82,7 @@ export default function RegisterPage() {
                       : "border-border bg-background text-foreground hover:bg-muted"
                   }`}
                 >
-                  Patient
+                  {t("auth.register.patientOption")}
                 </button>
                 <button
                   type="button"
@@ -87,13 +93,13 @@ export default function RegisterPage() {
                       : "border-border bg-background text-foreground hover:bg-muted"
                   }`}
                 >
-                  Practitioner
+                  {t("auth.register.practitionerOption")}
                 </button>
               </div>
             </div>
             <div>
               <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-foreground">
-                Full Name
+                {t("auth.fullName")}
               </label>
               <input
                 id="name"
@@ -102,12 +108,12 @@ export default function RegisterPage() {
                 onChange={(e) => setName(e.target.value)}
                 required
                 className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring transition-shadow focus:ring-2"
-                placeholder="Your full name"
+                placeholder={t("auth.fullNamePlaceholder")}
               />
             </div>
             <div>
               <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
-                Email
+                {t("auth.email")}
               </label>
               <input
                 id="email"
@@ -116,12 +122,12 @@ export default function RegisterPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring transition-shadow focus:ring-2"
-                placeholder="you@example.com"
+                placeholder={t("auth.emailPlaceholder")}
               />
             </div>
             <div>
               <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
-                Password
+                {t("auth.password")}
               </label>
               <input
                 id="password"
@@ -131,7 +137,7 @@ export default function RegisterPage() {
                 required
                 minLength={8}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none ring-ring transition-shadow focus:ring-2"
-                placeholder="At least 8 characters"
+                placeholder={t("auth.register.passwordPlaceholder")}
               />
             </div>
             <button
@@ -139,15 +145,15 @@ export default function RegisterPage() {
               disabled={loading}
               className="mt-2 flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("auth.register.submit")}
             </button>
           </form>
         </div>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {t("auth.register.haveAccount")}{" "}
           <Link href="/login" className="font-medium text-primary hover:underline">
-            Sign in
+            {t("auth.register.signInLink")}
           </Link>
         </p>
       </div>

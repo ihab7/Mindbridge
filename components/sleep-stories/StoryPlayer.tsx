@@ -19,6 +19,27 @@ function formatTime(sec: number): string {
   return `${m}:${String(s).padStart(2, "0")}`
 }
 
+type AmbientBed = SleepStory["defaultAmbient"]
+
+const AMBIENT_STORAGE_KEY = "mb_story_ambient"
+const AMBIENT_VOL_STORAGE_KEY = "mb_story_ambient_vol"
+const AMBIENT_BEDS: AmbientBed[] = ["rain", "ocean", "fire", "forest", "none"]
+
+/** The listener's saved ambient pick wins over a story's `defaultAmbient`
+ *  once one exists -- `defaultAmbient` only applies before any preference
+ *  has ever been saved (a brand-new listener's very first story). */
+function readStoredAmbient(fallback: AmbientBed): AmbientBed {
+  if (typeof window === "undefined") return fallback
+  const raw = window.localStorage.getItem(AMBIENT_STORAGE_KEY)
+  return (AMBIENT_BEDS as string[]).includes(raw ?? "") ? (raw as AmbientBed) : fallback
+}
+
+function readStoredAmbientVolume(fallback: number): number {
+  if (typeof window === "undefined") return fallback
+  const raw = Number(window.localStorage.getItem(AMBIENT_VOL_STORAGE_KEY))
+  return Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : fallback
+}
+
 export function StoryPlayer({ story }: { story: SleepStory }) {
   const t = useT()
   const router = useRouter()
@@ -34,8 +55,9 @@ export function StoryPlayer({ story }: { story: SleepStory }) {
 
   const [narrationOn, setNarrationOn] = useState(true)
   const [narrationVolume, setNarrationVolume] = useState(0.8)
-  const [ambientOn, setAmbientOn] = useState(story.ambientBed !== "none")
-  const [ambientVolume, setAmbientVolume] = useState(0.4)
+  const [ambient, setAmbient] = useState<AmbientBed>(() => readStoredAmbient(story.defaultAmbient))
+  const [ambientOn, setAmbientOn] = useState(() => readStoredAmbient(story.defaultAmbient) !== "none")
+  const [ambientVolume, setAmbientVolume] = useState(() => readStoredAmbientVolume(0.4))
   const [timerMinutes, setTimerMinutes] = useState<number | null>(null)
 
   useEffect(() => {
@@ -44,7 +66,8 @@ export function StoryPlayer({ story }: { story: SleepStory }) {
     const engine = new StoryAudio()
     audioRef.current = engine
     engine.loadStory(story.audioSrc)
-    engine.setAmbientBed(story.ambientBed)
+    engine.setAmbientBed(ambient)
+    engine.setAmbientOn(ambientOn)
     engine.setNarrationVolume(narrationVolume)
     engine.setAmbientVolume(ambientVolume)
     engine.onEnded(() => {
@@ -106,6 +129,27 @@ export function StoryPlayer({ story }: { story: SleepStory }) {
   function handleTimerChange(minutes: number | null) {
     setTimerMinutes(minutes)
     audioRef.current?.startSleepTimer(minutes)
+  }
+
+  /** Picking an icon always turns ambient on (even if it was off) and
+   *  crossfades live into the new bed via the engine -- narration keeps
+   *  playing untouched throughout. */
+  function handleAmbientSelect(bed: AmbientBed) {
+    setAmbient(bed)
+    setAmbientOn(true)
+    audioRef.current?.selectAmbient(bed)
+    if (typeof window !== "undefined") window.localStorage.setItem(AMBIENT_STORAGE_KEY, bed)
+  }
+
+  function handleAmbientOnChange(v: boolean) {
+    setAmbientOn(v)
+    audioRef.current?.setAmbientOn(v)
+  }
+
+  function handleAmbientVolumeChange(v: number) {
+    setAmbientVolume(v)
+    audioRef.current?.setAmbientVolume(v)
+    if (typeof window !== "undefined") window.localStorage.setItem(AMBIENT_VOL_STORAGE_KEY, String(v))
   }
 
   const closeButton = (
@@ -190,17 +234,12 @@ export function StoryPlayer({ story }: { story: SleepStory }) {
           setNarrationVolume(v)
           audioRef.current?.setNarrationVolume(v)
         }}
-        ambientBed={story.ambientBed}
+        ambient={ambient}
         ambientOn={ambientOn}
         ambientVolume={ambientVolume}
-        onAmbientOnChange={(v) => {
-          setAmbientOn(v)
-          audioRef.current?.setAmbientOn(v)
-        }}
-        onAmbientVolumeChange={(v) => {
-          setAmbientVolume(v)
-          audioRef.current?.setAmbientVolume(v)
-        }}
+        onAmbientOnChange={handleAmbientOnChange}
+        onAmbientVolumeChange={handleAmbientVolumeChange}
+        onAmbientSelect={handleAmbientSelect}
       />
 
       <SleepTimerPicker value={timerMinutes} onChange={handleTimerChange} />

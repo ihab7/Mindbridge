@@ -17,7 +17,7 @@ function setLocaleCookie(locale: Locale) {
   document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000; samesite=lax`
 }
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ compactOnMobile = false }: { compactOnMobile?: boolean } = {}) {
   const router = useRouter()
   const { locale: activeLocaleFromProvider } = useI18n()
   const t = useT()
@@ -41,7 +41,9 @@ export function LanguageSwitcher() {
           aria-label="Change language"
         >
           <Globe className="h-4 w-4" />
-          <span className="text-xs font-semibold">{activeLocale.toUpperCase()}</span>
+          <span className={`text-xs font-semibold ${compactOnMobile ? "hidden sm:inline" : ""}`}>
+            {activeLocale.toUpperCase()}
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

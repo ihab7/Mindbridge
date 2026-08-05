@@ -1,10 +1,23 @@
 import { startNatureSound, type NatureNode, type NatureSoundId } from "@/lib/audio/natureSounds"
 import type { SleepStory } from "./stories"
 
-type AmbientBed = SleepStory["ambientBed"]
+type AmbientBed = SleepStory["defaultAmbient"]
 
 type EndedCallback = () => void
 type TimerMode = "narration-end" | "duration"
+
+/** One "instance" of an ambient bed: its own gain node (so it can be faded
+ *  independently of every other layer) plus the nodes/timers that
+ *  `startNatureSound` registers for it. Crossfading is just: spawn a new
+ *  layer at gain 0 and ramp it up, while ramping every existing layer down
+ *  to 0 over the same span, then tearing the old ones down. */
+type AmbientLayer = {
+  gain: GainNode
+  nodes: NatureNode[]
+  timers: Array<ReturnType<typeof setTimeout>>
+}
+
+const AMBIENT_CROSSFADE_SEC = 1
 
 /**
  * Dual-channel sleep-story playback: a real HTMLAudioElement for narration
@@ -21,9 +34,7 @@ export class StoryAudio {
   private narrationVol = 0.8
 
   private ctx: AudioContext | null = null
-  private ambientGain: GainNode | null = null
-  private ambientNodes: NatureNode[] = []
-  private ambientTimers: Array<ReturnType<typeof setTimeout>> = []
+  private ambientLayers: AmbientLayer[] = []
   private ambientOn = true
   private ambientVol = 0.4
   private ambientBed: AmbientBed = "none"
@@ -104,16 +115,35 @@ export class StoryAudio {
     if (this.audioEl) this.audioEl.volume = on ? this.narrationVol : 0
   }
 
+  /** Sets the ambient bed without a listener gesture behind it (initial
+   *  load, or restoring a saved preference before playback starts). If
+   *  ambient is already playing this bed changes with a hard cut -- callers
+   *  driven by the icon picker should use `selectAmbient` instead, which
+   *  crossfades. */
   setAmbientBed(bed: AmbientBed) {
     this.ambientBed = bed
     if (this.playing && this.ambientOn) this.startAmbient()
   }
 
+  /** Listener picked an ambient icon (including "none"). Turns ambient on
+   *  if it was off, and crossfades live into the new bed if something was
+   *  already playing -- narration is entirely untouched by any of this. */
+  selectAmbient(bed: AmbientBed) {
+    const wasOn = this.ambientOn
+    const changed = bed !== this.ambientBed
+    this.ambientBed = bed
+    this.ambientOn = true
+    if (!this.playing) return
+    if (!changed && wasOn) return
+    if (wasOn && changed) this.crossfadeToAmbient(bed)
+    else this.startAmbient()
+  }
+
   setAmbientVolume(v: number) {
     this.ambientVol = v
-    if (this.ambientGain && this.ctx && this.ambientOn) {
-      this.ambientGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1)
-    }
+    if (!this.ctx || !this.ambientOn) return
+    const active = this.ambientLayers[this.ambientLayers.length - 1]
+    if (active) active.gain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1)
   }
 
   setAmbientOn(on: boolean) {
@@ -153,44 +183,80 @@ export class StoryAudio {
     if (this.ctx.state === "suspended") void this.ctx.resume()
   }
 
+  /** Fresh start with no existing layer to fade from: used on play(), on
+   *  toggling ambient back on, and on picking a bed while ambient was off. */
   private startAmbient() {
-    if (this.ambientBed === "none") {
-      this.stopAmbient()
-      return
-    }
+    this.stopAmbient()
+    const bed = this.ambientBed
+    if (bed === "none") return
     this.ensureAmbientContext()
     if (!this.ctx) return
 
-    this.stopAmbient()
-    const ctx = this.ctx
-    const gain = ctx.createGain()
-    gain.gain.value = 0
-    gain.connect(ctx.destination)
-    this.ambientGain = gain
-    gain.gain.setTargetAtTime(this.ambientVol, ctx.currentTime, 0.3)
+    const layer = this.spawnAmbientLayer(bed, this.ctx)
+    this.ambientLayers = [layer]
+    layer.gain.gain.setTargetAtTime(this.ambientVol, this.ctx.currentTime, 0.3)
+  }
 
-    startNatureSound(this.ambientBed as NatureSoundId, {
-      ctx,
-      destination: gain,
-      pushNode: (n) => this.ambientNodes.push(n),
-      pushTimer: (t) => this.ambientTimers.push(t),
-      isStillActive: () => this.ambientGain === gain,
+  /** Ramps every currently-playing layer down to silence while ramping a
+   *  new one (unless switching to "none") up to the current ambient
+   *  volume, over AMBIENT_CROSSFADE_SEC. Old layers are torn down only
+   *  after their fade-out finishes, so nothing clicks or cuts. */
+  private crossfadeToAmbient(bed: AmbientBed) {
+    this.ensureAmbientContext()
+    if (!this.ctx) return
+    const ctx = this.ctx
+
+    const oldLayers = this.ambientLayers
+    this.ambientLayers = []
+
+    if (bed !== "none") {
+      const layer = this.spawnAmbientLayer(bed, ctx)
+      this.ambientLayers = [layer]
+      layer.gain.gain.setValueAtTime(0, ctx.currentTime)
+      layer.gain.gain.linearRampToValueAtTime(this.ambientVol, ctx.currentTime + AMBIENT_CROSSFADE_SEC)
+    }
+
+    oldLayers.forEach((layer) => {
+      layer.gain.gain.cancelScheduledValues(ctx.currentTime)
+      layer.gain.gain.setValueAtTime(layer.gain.gain.value, ctx.currentTime)
+      layer.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + AMBIENT_CROSSFADE_SEC)
+      layer.timers.push(
+        setTimeout(() => this.teardownLayer(layer), AMBIENT_CROSSFADE_SEC * 1000 + 100)
+      )
     })
   }
 
-  private stopAmbient() {
-    this.ambientTimers.forEach((t) => clearTimeout(t))
-    this.ambientTimers = []
-    this.ambientNodes.forEach((n) => {
+  private spawnAmbientLayer(bed: Exclude<AmbientBed, "none">, ctx: AudioContext): AmbientLayer {
+    const gain = ctx.createGain()
+    gain.gain.value = 0
+    gain.connect(ctx.destination)
+    const layer: AmbientLayer = { gain, nodes: [], timers: [] }
+
+    startNatureSound(bed as NatureSoundId, {
+      ctx,
+      destination: gain,
+      pushNode: (n) => layer.nodes.push(n),
+      pushTimer: (t) => layer.timers.push(t),
+      isStillActive: () => this.ambientLayers.includes(layer),
+    })
+    return layer
+  }
+
+  private teardownLayer(layer: AmbientLayer) {
+    layer.timers.forEach((t) => clearTimeout(t))
+    layer.nodes.forEach((n) => {
       try {
         n.stop()
       } catch {
         /* already stopped */
       }
     })
-    this.ambientNodes = []
-    this.ambientGain?.disconnect()
-    this.ambientGain = null
+    layer.gain.disconnect()
+  }
+
+  private stopAmbient() {
+    this.ambientLayers.forEach((l) => this.teardownLayer(l))
+    this.ambientLayers = []
   }
 
   private teardownNarration() {
