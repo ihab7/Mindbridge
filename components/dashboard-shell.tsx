@@ -81,7 +81,7 @@ export function DashboardShell({
                     <span className="relative">
                       <Icon className="h-4 w-4" />
                       {link.href === "/patient/program" && programNeedsAttention && (
-                        <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
+                        <span className="absolute -end-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
                       )}
                     </span>
                     {t(link.labelKey)}
@@ -93,7 +93,7 @@ export function DashboardShell({
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <LanguageSwitcher />
-            <div className="hidden text-right sm:block">
+            <div className="hidden text-end sm:block">
               <p className="text-sm font-medium text-foreground">{user.name}</p>
               <p className="text-xs capitalize text-muted-foreground">{t(`role.${user.role}`)}</p>
             </div>

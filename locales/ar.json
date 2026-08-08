@@ -158,8 +158,9 @@
   "practitioner.feedback.errors.noteRequired": "الرسالة مطلوبة",
   "practitioner.feedback.errors.failedToSave": "تعذر الحفظ",
 
-  "mindfulness.title": "تمارين اليقظة والتنفس",
-  "mindfulness.subtitle": "تمارين إرشادية قصيرة للمساعدة في تقليل القلق والتوتر.",
+  "mindfulness.title": "تمارين سريعة",
+  "mindfulness.subtitle": "لحظة صعبة؟ اختر تمرينًا قصيرًا الآن.",
+  "mindfulness.alsoProgram": "أنت تتابع أيضًا برنامجًا موجّهًا ← برنامجي",
   "mindfulness.duration": "{minutes} د",
   "mindfulness.start": "ابدأ",
   "mindfulness.exercises.oneMinute": "تنفس لمدة دقيقة",
@@ -189,6 +190,7 @@
   "mindfulness.streak": "سلسلة اليقظة: {days} يوم",
 
   "program.assignedBy": "قام {name} بتعيين هذا لك",
+  "program.quickLink": "تحتاج إلى تمرين قصير الآن؟ ← تمارين سريعة",
   "program.stats.sessionsDone": "الجلسات",
   "program.stats.dayStreak": "أيام متتالية",
   "program.stats.moodTrend": "اتجاه المزاج",

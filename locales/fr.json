@@ -158,8 +158,9 @@
   "practitioner.feedback.errors.noteRequired": "Le message est obligatoire",
   "practitioner.feedback.errors.failedToSave": "Impossible d’enregistrer",
 
-  "mindfulness.title": "Exercices de pleine conscience et respiration",
-  "mindfulness.subtitle": "De courts exercices guidés pour réduire l’anxiété et le stress.",
+  "mindfulness.title": "Exercices rapides",
+  "mindfulness.subtitle": "Un moment difficile ? Choisissez un exercice court, dès maintenant.",
+  "mindfulness.alsoProgram": "Vous suivez aussi un programme guidé → Mon programme",
   "mindfulness.duration": "{minutes} min",
   "mindfulness.start": "Démarrer",
   "mindfulness.exercises.oneMinute": "Respiration 1 minute",
@@ -189,6 +190,7 @@
   "mindfulness.streak": "Série de pleine conscience : {days} jour(s)",
 
   "program.assignedBy": "{name} vous a assigné ce programme",
+  "program.quickLink": "Besoin d'un exercice court tout de suite ? → Exercices rapides",
   "program.stats.sessionsDone": "Séances",
   "program.stats.dayStreak": "Jours consécutifs",
   "program.stats.moodTrend": "Tendance de l'humeur",

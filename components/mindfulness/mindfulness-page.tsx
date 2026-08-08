@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useT } from "@/components/i18n-provider";
+import { useI18n, useT } from "@/components/i18n-provider";
+import { directionForLocale } from "@/i18n/routing";
 import { BreathingSession } from "@/components/mindfulness/session";
 import { ProgramBanner } from "@/components/mindfulness/program-banner";
 
@@ -37,9 +39,12 @@ const illustrationStyle: React.CSSProperties = {
 
 export function MindfulnessPage() {
   const t = useT();
+  const { locale } = useI18n();
+  const isRtl = directionForLocale(locale) === "rtl";
   const [active, setActive] = useState<Exercise | null>(null);
   const [streak, setStreak] = useState<number | null>(null);
   const [recommendedType, setRecommendedType] = useState<ExerciseType | null>(null);
+  const [hasProgram, setHasProgram] = useState(false);
 
   const exercises = useMemo<Exercise[]>(
     () => [
@@ -109,6 +114,21 @@ export function MindfulnessPage() {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/patient/program")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: { hasAssignment?: boolean } | null) => {
+        if (!cancelled && json?.hasAssignment) setHasProgram(true);
+      })
+      .catch(() => {
+        // ignore
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const recommendedExercise = useMemo(() => {
     if (!recommendedType) return null;
     return exercises.find((e) => e.type === recommendedType) ?? null;
@@ -156,6 +176,14 @@ export function MindfulnessPage() {
         <p className="mt-1 text-muted-foreground">
           {t("mindfulness.subtitle")}
         </p>
+        {hasProgram ? (
+          <Link
+            href="/patient/program"
+            className="mt-2 inline-flex items-center text-sm font-medium text-primary hover:underline"
+          >
+            {t("mindfulness.alsoProgram")}
+          </Link>
+        ) : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -171,23 +199,18 @@ export function MindfulnessPage() {
               <div
                 className="pointer-events-none absolute inset-0"
                 style={{
-                  background: `radial-gradient(circle at 78% 45%, ${ex.glowColor}, transparent 52%)`,
+                  background: `radial-gradient(circle at ${isRtl ? "22%" : "78%"} 45%, ${ex.glowColor}, transparent 52%)`,
                 }}
                 aria-hidden="true"
               />
 
-              {/* Text content — left side */}
+              {/* Text content — inline-start side (mirrors under RTL) */}
               <div className="relative z-10 flex w-[54%] flex-col gap-3 p-6 sm:w-[52%]">
-                {recommendedType === ex.type ? (
-                  <Badge variant="secondary" className="w-fit">
-                    {t("mindfulness.recommended.pill")}
-                  </Badge>
-                ) : null}
                 <div>
-                  <h3 className="text-base font-semibold leading-snug text-foreground sm:text-lg">
+                  <h3 className="text-base font-semibold leading-snug text-slate-900 sm:text-lg">
                     {t(ex.titleKey)}
                   </h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-slate-600">
                     {t("mindfulness.duration", { minutes: ex.minutes })}
                   </p>
                 </div>
@@ -201,9 +224,9 @@ export function MindfulnessPage() {
                 </Button>
               </div>
 
-              {/* Illustration — right side */}
+              {/* Illustration — inline-end side (mirrors under RTL) */}
               <div
-                className="pointer-events-none absolute bottom-0 right-0 top-0 flex w-[48%] items-center justify-center sm:w-[50%]"
+                className="pointer-events-none absolute bottom-0 end-0 top-0 flex w-[48%] items-center justify-center sm:w-[50%]"
                 aria-hidden="true"
               >
                 <div className="relative h-[200px] w-[200px] sm:h-[240px] sm:w-[240px] lg:h-[280px] lg:w-[280px]">

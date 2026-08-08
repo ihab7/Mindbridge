@@ -36,7 +36,7 @@ export function SessionRow({
         }
       }}
       className={`flex items-center gap-3 rounded-lg px-3 py-2.5 transition-all duration-200 ${
-        locked ? "cursor-not-allowed opacity-45" : "cursor-pointer hover:bg-muted hover:pl-4"
+        locked ? "cursor-not-allowed opacity-45" : "cursor-pointer hover:bg-muted hover:ps-4"
       }`}
     >
       <span

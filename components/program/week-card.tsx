@@ -39,7 +39,7 @@ export function WeekCard({
     <Accordion type="single" collapsible defaultValue={defaultOpen ? `week-${week.weekNumber}` : undefined}>
       <AccordionItem value={`week-${week.weekNumber}`} className="rounded-xl border border-border bg-card px-4 last:border-b">
         <AccordionTrigger className="hover:no-underline">
-          <div className="flex flex-1 items-center gap-3 text-left">
+          <div className="flex flex-1 items-center gap-3 text-start">
             <span
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
               style={{ background: week.color }}

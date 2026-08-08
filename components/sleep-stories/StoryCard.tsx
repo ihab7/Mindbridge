@@ -17,11 +17,11 @@ export function StoryCard({ story, onSelect }: { story: SleepStory; onSelect: ()
       type="button"
       onClick={onSelect}
       dir={dir}
-      className="group relative flex h-44 w-40 shrink-0 flex-col justify-between overflow-hidden rounded-2xl p-4 text-left shadow-sm transition-transform hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group relative flex h-44 w-40 shrink-0 flex-col justify-between overflow-hidden rounded-2xl p-4 text-start shadow-sm transition-transform hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       style={{ background: story.coverGradient }}
     >
       <div>
-        <p className={`text-base font-semibold leading-snug text-white ${dir === "rtl" ? "text-right" : "text-left"}`}>
+        <p className="text-base font-semibold leading-snug text-white text-start">
           {story.title}
         </p>
         {story.narratorName && <p className="mt-1 text-xs text-white/75">{story.narratorName}</p>}

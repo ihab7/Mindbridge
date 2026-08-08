@@ -74,7 +74,7 @@ export function DailyWellnessTasks({
               <span>{t("patient.wellness.streakDays", { count: streakDays })}</span>
             </div>
           )}
-          <div className="text-right">
+          <div className="text-end">
             <p className="text-xs font-medium text-muted-foreground">{t("patient.wellness.progressLabel")}</p>
             <p className="text-sm font-semibold text-card-foreground">
               {t("patient.wellness.progressCount", { completed: completedCount, total })}
@@ -101,7 +101,7 @@ export function DailyWellnessTasks({
               onClick={() => toggleTask(task.id)}
               aria-pressed={isDone}
               className={cn(
-                "flex flex-col items-start gap-3 rounded-xl border border-border/70 bg-background/60 p-4 text-left transition-colors duration-300 hover:border-primary/40 hover:bg-background",
+                "flex flex-col items-start gap-3 rounded-xl border border-border/70 bg-background/60 p-4 text-start transition-colors duration-300 hover:border-primary/40 hover:bg-background",
                 isDone && "border-primary/20 bg-primary/5"
               )}
             >

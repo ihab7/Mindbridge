@@ -1,6 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
+import Link from "next/link"
 import { Flame, TrendingDown, TrendingUp, Minus } from "lucide-react"
 import { useT } from "@/components/i18n-provider"
 import type { Locale } from "@/i18n/routing"
@@ -33,6 +34,12 @@ export function ProgramHero({
         <div>
           <h1 className="text-xl font-semibold text-card-foreground">{program.title[locale]}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{program.description[locale]}</p>
+          <Link
+            href="/mindfulness"
+            className="mt-2 inline-flex items-center text-sm font-medium text-primary hover:underline"
+          >
+            {t("program.quickLink")}
+          </Link>
           {practitionerName && (
             <p className="mt-2 text-xs font-medium text-primary">{t("program.assignedBy", { name: practitionerName })}</p>
           )}

@@ -158,8 +158,9 @@
   "practitioner.feedback.errors.noteRequired": "Message is required",
   "practitioner.feedback.errors.failedToSave": "Failed to save",
 
-  "mindfulness.title": "Mindfulness & Breathing Exercises",
-  "mindfulness.subtitle": "Short guided exercises to help reduce anxiety and stress.",
+  "mindfulness.title": "Quick exercises",
+  "mindfulness.subtitle": "Having a hard moment? Pick a short exercise, right now.",
+  "mindfulness.alsoProgram": "You're also following a guided program → My program",
   "mindfulness.duration": "{minutes} min",
   "mindfulness.start": "Start",
   "mindfulness.exercises.oneMinute": "1-minute breathing",
@@ -189,6 +190,7 @@
   "mindfulness.streak": "Mindfulness streak: {days} day(s)",
 
   "program.assignedBy": "{name} assigned this to you",
+  "program.quickLink": "Need a short exercise right now? → Quick exercises",
   "program.stats.sessionsDone": "Sessions",
   "program.stats.dayStreak": "Day streak",
   "program.stats.moodTrend": "Mood trend",
