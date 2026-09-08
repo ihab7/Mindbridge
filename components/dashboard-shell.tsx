@@ -4,7 +4,7 @@ import React from "react"
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Activity, LogOut, LayoutDashboard, Users, Bell, MessageCircle, Leaf, Route, Moon } from "lucide-react"
+import { Activity, LogOut, LayoutDashboard, Users, Bell, MessageCircle, Leaf, Route, Moon, Settings } from "lucide-react"
 import type { User } from "@/lib/auth"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -23,6 +23,7 @@ const practitionerLinks = [
   { href: "/practitioner/patients", labelKey: "nav.patients", icon: Users },
   { href: "/practitioner/alerts", labelKey: "nav.alerts", icon: Bell },
   { href: "/practitioner/messages", labelKey: "nav.messages", icon: MessageCircle },
+  { href: "/practitioner/settings", labelKey: "nav.settings", icon: Settings },
 ]
 
 export function DashboardShell({

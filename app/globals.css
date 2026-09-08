@@ -125,6 +125,47 @@ body {
 .mb-tooltip::before {
   border-top-color: hsl(var(--border)) !important;
 }
+
+/* Printable clinical consultation letter. A4 page, chrome hidden, tinted
+   blocks preserved, and no section or table row split across a page break. */
+@page {
+  size: A4;
+  margin: 18mm 16mm;
+}
+@media print {
+  nav,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  body,
+  body * {
+    transition: none !important;
+  }
+  .report-sheet {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+  }
+  .report-sheet,
+  .report-sheet * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .report-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .report-sheet table,
+  .report-sheet tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
 .leaflet-marker-icon .mb-pin {
   transition: transform 0.15s ease;
 }

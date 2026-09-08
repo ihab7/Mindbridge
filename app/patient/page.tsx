@@ -2,8 +2,7 @@ import { getSession } from "@/lib/auth"
 import { getSql } from "@/lib/db"
 import { redirect } from "next/navigation"
 import { JournalForm } from "@/components/patient/journal-form"
-import { MoodChart } from "@/components/patient/mood-chart"
-import { MedicationChart } from "@/components/patient/medication-chart"
+import { WeeklyWellbeing } from "@/components/wellbeing/weekly-wellbeing"
 import { RecentEntries } from "@/components/patient/recent-entries"
 import { MentalStatusBadge } from "@/components/mental-status-badge"
 import { SessionPrepCard } from "@/components/patient/session-prep-card"
@@ -28,6 +27,18 @@ export default async function PatientDashboard() {
     LIMIT 14
   `) as Record<string, unknown>[]
 
+  // Patient-side wellbeing summary: a true rolling window by DATE, not by entry
+  // count. 14 days so the weekly summary can compare this week to the prior one;
+  // it renders only the last 7. Sparse data leaves days genuinely absent rather
+  // than drawing a continuous line across a multi-month gap.
+  const wellbeingEntries = (await sql`
+    SELECT mood, anxiety, sleep_hours, medication_taken, created_at
+    FROM journal_entries
+    WHERE patient_id = ${user.id}
+      AND created_at >= NOW() - INTERVAL '13 days'
+    ORDER BY created_at ASC
+  `) as any
+
   // Get practitioner info for this patient
   const practitioner = (await sql`
     SELECT u.id, u.name FROM users u
@@ -40,8 +51,6 @@ export default async function PatientDashboard() {
     SELECT COUNT(*) as count FROM messages
     WHERE receiver_id = ${user.id} AND read = false
   `) as Record<string, unknown>[]
-
-  const chartEntries = [...entries].reverse() as any
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,15 +84,14 @@ export default async function PatientDashboard() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="order-1">
-          <div className="flex flex-col gap-6">
+          <div id="journal-form" className="flex flex-col gap-6 scroll-mt-20">
             <JournalForm />
             <SessionPrepCard />
           </div>
         </div>
         <div className="order-2 flex flex-col gap-6">
-          <MoodChart entries={chartEntries} />
+          <WeeklyWellbeing entries={wellbeingEntries} />
           <SleepNudgeBanner />
-          <MedicationChart entries={chartEntries} />
         </div>
       </div>
 

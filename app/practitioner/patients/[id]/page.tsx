@@ -1,17 +1,17 @@
-import React from "react"
+import React, { Suspense } from "react"
 import { getSession } from "@/lib/auth"
 import { getSql } from "@/lib/db"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Brain, Moon, Pill, TrendingUp, MessageCircle } from "lucide-react"
-import { MoodChart } from "@/components/patient/mood-chart"
-import { MedicationChart } from "@/components/patient/medication-chart"
+import { WellbeingPanelServer } from "@/components/practitioner/wellbeing-panel-server"
+import { WellbeingPanelSkeleton } from "@/components/practitioner/WellbeingPanel"
+import { ReportsSection } from "@/components/practitioner/reports/ReportsSection"
 import { AlertList } from "@/components/practitioner/alert-list"
 import { MentalStatusBadge } from "@/components/mental-status-badge"
 import { PractitionerFeedbackForm } from "@/components/practitioner/feedback-form"
 import { SessionPrepViewer } from "@/components/practitioner/session-prep-viewer"
 import { ProgramProgressCard } from "@/components/practitioner/program-progress-card"
-import { NewReportButton } from "@/components/practitioner/consultation-report/new-report-button"
 import {
   parseSideEffectsFromDb,
   sideEffectsKeyToLabel,
@@ -53,8 +53,6 @@ export default async function PatientDetailPage({
     ORDER BY created_at DESC
   `) as Record<string, unknown>[]
 
-  const chartEntries = [...entries].reverse() as any
-
   // Analytics
   const totalEntries = entries.length
   const medTakenCount = entries.filter((e: Record<string, unknown>) => e.medication_taken).length
@@ -85,7 +83,6 @@ export default async function PatientDetailPage({
           <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{patient.email}</p>
         </div>
-        <NewReportButton patientId={patientId} />
         <Link
           href={`/practitioner/messages?patient=${patientId}`}
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
@@ -120,11 +117,19 @@ export default async function PatientDetailPage({
         <PractitionerFeedbackForm patientId={patientId} />
       </div>
 
-      {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <MoodChart entries={chartEntries} />
-        <MedicationChart entries={chartEntries} />
-      </div>
+      {/* Wellbeing panel — scannable clinical summary over full-precision chart */}
+      <Suspense fallback={<WellbeingPanelSkeleton />}>
+        <WellbeingPanelServer
+          patientId={patientId}
+          patientName={patient.name}
+          messageHref={`/practitioner/messages?patient=${patientId}`}
+        />
+      </Suspense>
+
+      {/* Printable clinical consultation letters */}
+      <Suspense fallback={null}>
+        <ReportsSection patientId={patientId} practitionerId={user.id} />
+      </Suspense>
 
       {/* Alerts */}
       {openAlerts.length > 0 && (

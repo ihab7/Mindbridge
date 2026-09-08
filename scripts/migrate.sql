@@ -321,3 +321,72 @@ BEGIN
 END $$;
 CREATE INDEX IF NOT EXISTS idx_sleep_story_plays_patient ON sleep_story_plays(patient_id);
 CREATE INDEX IF NOT EXISTS idx_sleep_story_plays_story ON sleep_story_plays(story_id);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Printable clinical consultation LETTERS (letterhead documents).
+-- Distinct from `consultation_reports` above (the AI-narrative summary): this
+-- is a point-in-time, letterhead PDF-ready document. `practitioner_profiles`
+-- holds the private letterhead identity for a logged-in practitioner USER —
+-- separate from the public B2B `practitioners` directory listing, which not
+-- every practitioner user has. Empty fields are simply omitted from the
+-- letterhead, so all are nullable.
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS practitioner_profiles (
+  id                 SERIAL PRIMARY KEY,
+  user_id            INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  full_name          TEXT,
+  specialty          TEXT,
+  cabinet_name       TEXT,
+  license_number     TEXT,
+  address            TEXT,
+  phone              TEXT,
+  email              TEXT,
+  report_footer_note TEXT,
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_practitioner_profiles_user ON practitioner_profiles(user_id);
+
+-- Backfill: every existing practitioner USER gets a profile row (defaulting
+-- name/email from their account) so the settings page never queries a missing
+-- record. Idempotent via NOT EXISTS.
+-- NOTE ON ACCESS CONTROL: this stack has no Supabase/RLS — a single application
+-- DB role serves all requests and there is no auth.uid() to key a policy on.
+-- "A practitioner reads/updates only their own row" is enforced in application
+-- code: every query in the profile API and settings page is scoped to the
+-- session user's id. Adding Postgres RLS here would be a non-functional no-op.
+INSERT INTO practitioner_profiles (user_id, full_name, email)
+SELECT u.id, u.name, u.email
+FROM users u
+WHERE u.role = 'practitioner'
+  AND NOT EXISTS (SELECT 1 FROM practitioner_profiles p WHERE p.user_id = u.id);
+
+-- A generated clinical letter. `snapshot` is the full ConsultationReport object
+-- at issue time: regenerating/reopening reproduces the SAME figures, never a
+-- recomputation against changed data. `language` fixes date/label rendering to
+-- the language the report was issued in. Authorization is enforced in-app
+-- (practitioner owns the patient link); patients never reach these rows.
+CREATE TABLE IF NOT EXISTS clinical_letter_reports (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reference       TEXT UNIQUE NOT NULL,
+  practitioner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  patient_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sequence        INTEGER NOT NULL,
+  period_from     DATE NOT NULL,
+  period_to       DATE NOT NULL,
+  language        TEXT NOT NULL DEFAULT 'fr',
+  snapshot        JSONB NOT NULL,
+  issued_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_clinical_letters_practitioner ON clinical_letter_reports(practitioner_id);
+CREATE INDEX IF NOT EXISTS idx_clinical_letters_patient ON clinical_letter_reports(patient_id);
+-- Per-practitioner sequence is unique, so the reference counter never collides.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_clinical_letters_seq
+  ON clinical_letter_reports(practitioner_id, sequence);
+
+-- Report format: 'clinical' (letterhead + indicator table + signature, for the
+-- file/insurance/colleagues) or 'narrative' (warm prose sections, for the
+-- patient or session notes). A generated report is a permanent document —
+-- format is fixed at generation and stored both as this column (for listing/
+-- filtering) and inside `snapshot` itself (so reopening is self-describing).
+ALTER TABLE clinical_letter_reports
+  ADD COLUMN IF NOT EXISTS format TEXT NOT NULL DEFAULT 'clinical' CHECK (format IN ('clinical', 'narrative'));
