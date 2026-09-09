@@ -16,10 +16,13 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useT } from "@/components/i18n-provider"
 
 type PeriodKind = "last14" | "last30" | "sinceLast" | "custom"
 type ReportFormat = "clinical" | "narrative"
+type ComparisonMode = "previousPeriod" | "inclusion"
+type RiskLevel = "none" | "watch" | "significant"
 
 const HINT_KEY = "mb_report_profile_hint_dismissed"
 const formatStorageKey = (practitionerId: number) => `mb_report_format_${practitionerId}`
@@ -52,6 +55,12 @@ export function GenerateReportDialog({
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
   const [observations, setObservations] = useState("")
+  const [comparisonMode, setComparisonMode] = useState<ComparisonMode>("previousPeriod")
+  // Risk level starts unselected on every open — never pre-filled from the
+  // wellbeing panel's danger-tone flags, even when they're firing for this
+  // patient. It's the practitioner's own judgment, made fresh each time.
+  const [riskLevel, setRiskLevel] = useState<RiskLevel | null>(null)
+  const [riskDetail, setRiskDetail] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showProfileHint, setShowProfileHint] = useState(false)
@@ -77,6 +86,15 @@ export function GenerateReportDialog({
     }
     setShowProfileHint(!hasProfile && !dismissed)
   }, [open, hasProfile])
+
+  // Risk assessment is a fresh judgment every time — never remembered or
+  // pre-filled, so it's reset to unselected on every open.
+  useEffect(() => {
+    if (!open) return
+    setRiskLevel(null)
+    setRiskDetail("")
+    setComparisonMode("previousPeriod")
+  }, [open])
 
   function selectFormat(next: ReportFormat) {
     setFormat(next)
@@ -108,6 +126,9 @@ export function GenerateReportDialog({
           format,
           period: { kind, from: from || undefined, to: to || undefined },
           observations: observations.trim() || undefined,
+          comparisonMode: format === "clinical" ? comparisonMode : undefined,
+          riskLevel,
+          riskDetail: riskLevel !== "none" ? riskDetail.trim() : undefined,
         }),
       })
       if (res.status === 422) {
@@ -227,6 +248,36 @@ export function GenerateReportDialog({
               </div>
             )}
 
+            {format === "clinical" && (
+              <div className="flex flex-col gap-1.5">
+                <Label>{t("report.dialog.comparisonLabel")}</Label>
+                <RadioGroup
+                  value={comparisonMode}
+                  onValueChange={(v) => setComparisonMode(v as ComparisonMode)}
+                  className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+                >
+                  <label
+                    htmlFor="comparison-previousPeriod"
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] transition-colors ${
+                      comparisonMode === "previousPeriod" ? "border-primary bg-primary/10" : "border-border hover:bg-muted"
+                    }`}
+                  >
+                    <RadioGroupItem value="previousPeriod" id="comparison-previousPeriod" />
+                    {t("report.dialog.comparison.previousPeriod")}
+                  </label>
+                  <label
+                    htmlFor="comparison-inclusion"
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] transition-colors ${
+                      comparisonMode === "inclusion" ? "border-primary bg-primary/10" : "border-border hover:bg-muted"
+                    }`}
+                  >
+                    <RadioGroupItem value="inclusion" id="comparison-inclusion" />
+                    {t("report.dialog.comparison.inclusion")}
+                  </label>
+                </RadioGroup>
+              </div>
+            )}
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="report-observations">{t("report.dialog.observations")}</Label>
               <Textarea
@@ -240,6 +291,37 @@ export function GenerateReportDialog({
               <span className="text-end text-[11px] text-muted-foreground">{observations.length}/600</span>
             </div>
 
+            <div className="flex flex-col gap-1.5">
+              <Label>{t("report.dialog.risk.label")}</Label>
+              <RadioGroup value={riskLevel ?? ""} onValueChange={(v) => setRiskLevel(v as RiskLevel)} className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {(["none", "watch", "significant"] as RiskLevel[]).map((level) => (
+                  <label
+                    key={level}
+                    htmlFor={`risk-${level}`}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] transition-colors ${
+                      riskLevel === level ? "border-primary bg-primary/10" : "border-border hover:bg-muted"
+                    }`}
+                  >
+                    <RadioGroupItem value={level} id={`risk-${level}`} />
+                    {t(`report.dialog.risk.${level}`)}
+                  </label>
+                ))}
+              </RadioGroup>
+              {(riskLevel === "watch" || riskLevel === "significant") && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="risk-detail">{t("report.dialog.risk.detailLabel")}</Label>
+                  <Textarea
+                    id="risk-detail"
+                    value={riskDetail}
+                    onChange={(e) => setRiskDetail(e.target.value.slice(0, 400))}
+                    maxLength={400}
+                    rows={3}
+                    placeholder={t("report.dialog.risk.detailPlaceholder")}
+                  />
+                </div>
+              )}
+            </div>
+
             {error && <p className="text-[13px] text-destructive">{error}</p>}
           </div>
 
@@ -247,7 +329,16 @@ export function GenerateReportDialog({
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={submitting}>
               {t("common.cancel")}
             </Button>
-            <Button type="button" onClick={generate} disabled={submitting || (kind === "custom" && (!from || !to))}>
+            <Button
+              type="button"
+              onClick={generate}
+              disabled={
+                submitting ||
+                (kind === "custom" && (!from || !to)) ||
+                !riskLevel ||
+                ((riskLevel === "watch" || riskLevel === "significant") && !riskDetail.trim())
+              }
+            >
               {submitting ? t("report.dialog.generating") : t("report.dialog.generate")}
             </Button>
           </DialogFooter>

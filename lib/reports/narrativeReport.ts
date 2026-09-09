@@ -10,7 +10,17 @@
 import { buildClinicalSummary, type ClinicalEntry, type ClinicalSummary } from "@/lib/wellbeing/clinicalSummary"
 import { topKeywords } from "@/lib/text/keywords"
 import type { Translator } from "@/lib/server-i18n"
-import { daySpan, buildPeriodLabel, formatReportDate, type ReportLanguage, type ReportPeriod, type ConsultationReport } from "./consultationReport"
+import {
+  daySpan,
+  buildPeriodLabel,
+  formatReportDate,
+  type ReportLanguage,
+  type ReportPeriod,
+  type ConsultationReport,
+  type RiskAssessment,
+} from "./consultationReport"
+// Type-only import: erased at compile time, no runtime circular dependency.
+import type { ReportDiagnosis, ReportTreatment } from "./data"
 
 export type ReportEntry = ClinicalEntry & {
   side_effects: string[]
@@ -25,6 +35,8 @@ export type NarrativeReport = {
   period: ReportPeriod
   practitioner: ConsultationReport["practitioner"]
   patient: ConsultationReport["patient"]
+  diagnosis: ReportDiagnosis | null
+  treatments: ReportTreatment[]
   mood: string
   medication: string
   sleep: string
@@ -34,6 +46,7 @@ export type NarrativeReport = {
   overallProgress: string
   recommendations: string[]
   nextAppointment: string
+  riskAssessment: RiskAssessment
   footerNote: string | null
   dataCompleteness: { daysLogged: number; daysTotal: number }
   isThin: boolean
@@ -51,10 +64,13 @@ export type BuildNarrativeInput = {
     fileNumber: string | null
     followedSince: string | null // ISO date or null
   }
+  diagnosis: ReportDiagnosis | null
+  treatments: ReportTreatment[]
   entries: ReportEntry[]
   programSummary: string | null
   breathingSessionCount: number
   nextAppointmentIso: string | null
+  riskAssessment: RiskAssessment
   footerNote: string | null
   t: Translator
 }
@@ -218,6 +234,8 @@ export function buildNarrativeReport(input: BuildNarrativeInput): NarrativeRepor
         ? formatReportDate(`${input.patient.followedSince}T00:00:00`, language)
         : null,
     },
+    diagnosis: input.diagnosis,
+    treatments: input.treatments,
     mood: buildMoodSection(summary, t),
     medication: buildMedicationSection(summary, t),
     sleep: buildSleepSection(summary, t),
@@ -227,6 +245,7 @@ export function buildNarrativeReport(input: BuildNarrativeInput): NarrativeRepor
     overallProgress: buildOverallProgressSection(summary, t),
     recommendations: buildRecommendations(summary, input.programSummary != null, t),
     nextAppointment: buildNextAppointmentText(input.nextAppointmentIso, language, t),
+    riskAssessment: input.riskAssessment,
     footerNote: input.footerNote,
     dataCompleteness: { daysLogged: summary.daysLogged, daysTotal: summary.daysTotal },
     isThin: summary.isThin,

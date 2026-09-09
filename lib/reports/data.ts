@@ -1,6 +1,6 @@
 import { getSql } from "@/lib/db"
 import type { Translator } from "@/lib/server-i18n"
-import type { ConsultationReport, ReportLanguage } from "./consultationReport"
+import { daySpan, type ComparisonMode, type ConsultationReport, type ReportLanguage, type RiskLevel } from "./consultationReport"
 import type { NarrativeReport, ReportEntry } from "./narrativeReport"
 
 export type AnyReport = ConsultationReport | NarrativeReport
@@ -113,6 +113,48 @@ export async function getEntriesForPeriod(
   }))
 }
 
+export type ReportDiagnosis = { code: string | null; label: string | null; updatedAt: string | null }
+
+/** Current diagnosis on file for the patient, or null if never set. */
+export async function getPatientDiagnosis(sql: Sql, patientId: number): Promise<ReportDiagnosis | null> {
+  const rows = (await sql`
+    SELECT diagnosis_code, diagnosis_label, diagnosis_updated_at
+    FROM patients WHERE user_id = ${patientId}
+  `) as Record<string, unknown>[]
+  const r = rows[0]
+  if (!r || (r.diagnosis_code == null && r.diagnosis_label == null)) return null
+  return {
+    code: orNull(r.diagnosis_code),
+    label: orNull(r.diagnosis_label),
+    updatedAt: r.diagnosis_updated_at ? new Date(String(r.diagnosis_updated_at)).toISOString() : null,
+  }
+}
+
+export type ReportTreatment = {
+  medicationName: string
+  dosage: string | null
+  frequency: string | null
+  startDate: string | null // ISO date
+  status: "active" | "stopped"
+}
+
+/** Treatments currently on file for the patient, frozen into the report snapshot at generation time. */
+export async function getPatientTreatments(sql: Sql, patientId: number): Promise<ReportTreatment[]> {
+  const rows = (await sql`
+    SELECT medication_name, dosage, frequency, start_date, status
+    FROM patient_treatments
+    WHERE patient_id = ${patientId} AND status = 'active'
+    ORDER BY start_date DESC NULLS LAST, created_at DESC
+  `) as Record<string, unknown>[]
+  return rows.map((r) => ({
+    medicationName: String(r.medication_name),
+    dosage: orNull(r.dosage),
+    frequency: orNull(r.frequency),
+    startDate: r.start_date ? toDateOnly(new Date(String(r.start_date))) : null,
+    status: "active" as const,
+  }))
+}
+
 /** Breathing/mindfulness sessions completed within the period. */
 export async function getBreathingSessionCount(
   sql: Sql,
@@ -215,6 +257,53 @@ export async function resolvePeriod(
   return { from: toDateOnly(from), to: today }
 }
 
+/** Entries from the period immediately preceding [periodFrom, periodTo], same length. */
+export async function getPreviousPeriodEntries(
+  sql: Sql,
+  patientId: number,
+  periodFrom: string,
+  periodTo: string,
+): Promise<ReportEntry[]> {
+  const days = daySpan(periodFrom, periodTo)
+  const to = new Date(`${periodFrom}T00:00:00`)
+  to.setDate(to.getDate() - 1)
+  const from = new Date(to)
+  from.setDate(from.getDate() - (days - 1))
+  return getEntriesForPeriod(sql, patientId, toDateOnly(from), toDateOnly(to))
+}
+
+/** The patient's first 7 distinct logged calendar days ever — the "at inclusion" baseline. */
+export async function getInclusionBaselineEntries(sql: Sql, patientId: number): Promise<ReportEntry[]> {
+  const rows = (await sql`
+    SELECT mood, anxiety, sleep_hours, medication_taken, challenges, achievements, side_effects, side_effects_other, created_at
+    FROM journal_entries
+    WHERE patient_id = ${patientId}
+    ORDER BY created_at ASC
+    LIMIT 200
+  `) as Record<string, unknown>[]
+  const seenDays = new Set<string>()
+  const result: ReportEntry[] = []
+  for (const r of rows) {
+    const dayKey = toDateOnly(new Date(String(r.created_at)))
+    if (!seenDays.has(dayKey)) {
+      if (seenDays.size >= 7) break
+      seenDays.add(dayKey)
+    }
+    result.push({
+      mood: Number(r.mood),
+      anxiety: Number(r.anxiety),
+      sleep_hours: Number(r.sleep_hours),
+      medication_taken: Boolean(r.medication_taken),
+      challenges: r.challenges == null ? "" : String(r.challenges),
+      achievements: r.achievements == null ? "" : String(r.achievements),
+      side_effects: Array.isArray(r.side_effects) ? (r.side_effects as string[]) : [],
+      side_effects_other: r.side_effects_other == null ? null : String(r.side_effects_other),
+      created_at: String(r.created_at),
+    })
+  }
+  return result
+}
+
 export async function getNextSequence(sql: Sql, practitionerId: number): Promise<number> {
   const rows = (await sql`
     SELECT COALESCE(MAX(sequence), 0) + 1 AS next
@@ -257,18 +346,37 @@ export async function insertReport(
     language: ReportLanguage
     format: ReportFormat
     snapshot: AnyReport
+    // Mirrored alongside the snapshot so plain SQL can query them directly
+    // (e.g. counting significant-risk reports) without JSON parsing. The
+    // snapshot remains the frozen source of truth for reopening a report.
+    comparisonMode: ComparisonMode | null
+    riskLevel: RiskLevel
+    riskDetail: string | null
   },
 ): Promise<string> {
   const rows = (await sql`
     INSERT INTO clinical_letter_reports
-      (reference, practitioner_id, patient_id, sequence, period_from, period_to, language, format, snapshot)
+      (reference, practitioner_id, patient_id, sequence, period_from, period_to, language, format, snapshot,
+       comparison_mode, risk_level, risk_detail)
     VALUES
       (${params.reference}, ${params.practitionerId}, ${params.patientId}, ${params.sequence},
        ${params.periodFrom}::date, ${params.periodTo}::date, ${params.language}, ${params.format},
-       ${JSON.stringify(params.snapshot)}::jsonb)
+       ${JSON.stringify(params.snapshot)}::jsonb,
+       ${params.comparisonMode}, ${params.riskLevel}, ${params.riskDetail})
     RETURNING id
   `) as Record<string, unknown>[]
   return String(rows[0].id)
+}
+
+// Reports generated before the 'high' -> 'significant' rename have a frozen
+// snapshot with riskAssessment.level === 'high'. Per FIX 2 (Option A), we
+// normalize at read time rather than mutate the stored document — a report
+// is a frozen document, and this keeps it that way while still rendering
+// correctly under the new label.
+function normalizeSnapshotRiskLevel(snapshot: AnyReport): AnyReport {
+  const risk = (snapshot as { riskAssessment?: { level?: string } }).riskAssessment
+  if (risk?.level !== "high") return snapshot
+  return { ...snapshot, riskAssessment: { ...risk, level: "significant" } } as AnyReport
 }
 
 /** Fetch one stored report, scoped to the owning practitioner. */
@@ -292,7 +400,7 @@ export async function getStoredReport(
     periodFrom: String(r.period_from),
     periodTo: String(r.period_to),
     issuedAt: new Date(String(r.issued_at)).toISOString(),
-    snapshot: r.snapshot as AnyReport,
+    snapshot: normalizeSnapshotRiskLevel(r.snapshot as AnyReport),
   }
 }
 

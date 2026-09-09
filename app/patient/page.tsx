@@ -52,6 +52,23 @@ export default async function PatientDashboard() {
     WHERE receiver_id = ${user.id} AND read = false
   `) as Record<string, unknown>[]
 
+  // Preloaded so SessionPrepCard can pick its initial edit/compact state on
+  // first paint — no flash of the edit form before jumping to compact.
+  const sessionPrepRows = (await sql`
+    SELECT topics_to_discuss, questions_for_therapist, recent_concerns, updated_at
+    FROM session_prep
+    WHERE patient_id = ${user.id}
+    LIMIT 1
+  `) as Record<string, unknown>[]
+  const sessionPrepInitialData = sessionPrepRows.length > 0
+    ? {
+        topics_to_discuss: String(sessionPrepRows[0].topics_to_discuss ?? ""),
+        questions_for_therapist: String(sessionPrepRows[0].questions_for_therapist ?? ""),
+        recent_concerns: String(sessionPrepRows[0].recent_concerns ?? ""),
+        updated_at: String(sessionPrepRows[0].updated_at),
+      }
+    : null
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -86,7 +103,7 @@ export default async function PatientDashboard() {
         <div className="order-1">
           <div id="journal-form" className="flex flex-col gap-6 scroll-mt-20">
             <JournalForm />
-            <SessionPrepCard />
+            <SessionPrepCard initialData={sessionPrepInitialData} />
           </div>
         </div>
         <div className="order-2 flex flex-col gap-6">

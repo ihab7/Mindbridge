@@ -8,6 +8,10 @@ import {
   getPractitionerLetterhead,
   getProgramSummary,
   getReportPatientInfo,
+  getPatientDiagnosis,
+  getPatientTreatments,
+  getPreviousPeriodEntries,
+  getInclusionBaselineEntries,
   getBreathingSessionCount,
   getNextAppointment,
   buildReference,
@@ -15,7 +19,13 @@ import {
   resolvePeriod,
   type ReportFormat,
 } from "@/lib/reports/data"
-import { buildConsultationReport, type ReportLanguage } from "@/lib/reports/consultationReport"
+import {
+  buildConsultationReport,
+  type ReportLanguage,
+  type ComparisonMode,
+  type RiskAssessment,
+  type RiskLevel,
+} from "@/lib/reports/consultationReport"
 import { buildNarrativeReport } from "@/lib/reports/narrativeReport"
 import { logDbError } from "@/lib/db-errors"
 
@@ -31,6 +41,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "bad-request" }, { status: 400 })
   }
   const format: ReportFormat = body?.format === "narrative" ? "narrative" : "clinical"
+
+  // Risk assessment is mandatory and NEVER auto-derived — the practitioner
+  // must explicitly choose a level, and anything beyond "none" requires a
+  // non-empty detail. Enforced here too, not just client-side.
+  const riskLevel: RiskLevel | null = ["none", "watch", "significant"].includes(body?.riskLevel) ? body.riskLevel : null
+  if (!riskLevel) {
+    return NextResponse.json({ error: "bad-request", field: "riskLevel" }, { status: 400 })
+  }
+  const riskDetailRaw = typeof body?.riskDetail === "string" ? body.riskDetail.trim() : ""
+  if (riskLevel !== "none" && !riskDetailRaw) {
+    return NextResponse.json({ error: "bad-request", field: "riskDetail" }, { status: 400 })
+  }
+  const riskAssessment: RiskAssessment = { level: riskLevel, detail: riskLevel === "none" ? null : riskDetailRaw.slice(0, 600) }
+
+  // Comparaison basis for the indicator table — clinical format only.
+  const comparisonMode: ComparisonMode = body?.comparisonMode === "inclusion" ? "inclusion" : "previousPeriod"
 
   const sql = getSql()
 
@@ -62,10 +88,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "no-data" }, { status: 422 })
     }
 
-    const [{ letterhead, footerNote }, patient, programSummary] = await Promise.all([
+    const [{ letterhead, footerNote }, patient, programSummary, diagnosis, treatments] = await Promise.all([
       getPractitionerLetterhead(sql, user.id),
       getReportPatientInfo(sql, patientId),
       getProgramSummary(sql, patientId, t),
+      getPatientDiagnosis(sql, patientId),
+      getPatientTreatments(sql, patientId),
     ])
     if (!patient) {
       return NextResponse.json({ error: "not-found" }, { status: 404 })
@@ -88,10 +116,13 @@ export async function POST(req: Request) {
             period,
             practitioner: letterhead,
             patient,
+            diagnosis,
+            treatments,
             entries,
             programSummary,
             breathingSessionCount: await getBreathingSessionCount(sql, patientId, period.from, period.to),
             nextAppointmentIso: await getNextAppointment(sql, patientId, user.id),
+            riskAssessment,
             footerNote,
             t,
           })
@@ -102,9 +133,17 @@ export async function POST(req: Request) {
             period,
             practitioner: letterhead,
             patient,
+            diagnosis,
+            treatments,
             entries,
+            comparisonMode,
+            priorEntries:
+              comparisonMode === "inclusion"
+                ? await getInclusionBaselineEntries(sql, patientId)
+                : await getPreviousPeriodEntries(sql, patientId, period.from, period.to),
             programSummary,
             observations,
+            riskAssessment,
             footerNote,
             t,
           })
@@ -119,6 +158,12 @@ export async function POST(req: Request) {
       language,
       format,
       snapshot,
+      // Top-level columns alongside the snapshot: the snapshot stays the
+      // frozen source of truth for reopening, these enable direct SQL
+      // queries (e.g. counting significant-risk reports) without JSON parsing.
+      comparisonMode: format === "clinical" ? comparisonMode : null,
+      riskLevel: riskAssessment.level,
+      riskDetail: riskAssessment.detail,
     })
 
     return NextResponse.json({ id, reference })

@@ -57,7 +57,27 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ sessionPrep: (result as Record<string, unknown>[])[0] }, { status: 200 })
   } catch (error) {
-    console.error("Session prep save error:", error)
+    const pgError = error as {
+      message?: string
+      code?: string
+      table?: string
+      column?: string
+      constraint?: string
+      detail?: string
+      hint?: string
+      schema?: string
+    }
+    console.error("Session prep save error:", {
+      message: pgError?.message,
+      code: pgError?.code,
+      table: pgError?.table,
+      column: pgError?.column,
+      constraint: pgError?.constraint,
+      detail: pgError?.detail,
+      hint: pgError?.hint,
+      schema: pgError?.schema,
+      raw: error,
+    })
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

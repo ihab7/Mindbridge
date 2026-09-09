@@ -2,13 +2,30 @@ import { getSession } from "@/lib/auth"
 import { getSql } from "@/lib/db"
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { Brain, Moon, Pill, ChevronRight, Sparkles } from "lucide-react"
+import { Brain, Moon, Pill, ChevronRight, Sparkles, X } from "lucide-react"
 import { MentalStatusBadge } from "@/components/mental-status-badge"
+import { getServerI18n } from "@/lib/server-i18n"
+import {
+  getOpenAlertPatientIds,
+  getCriticalMoodPatientIds,
+  getActiveTrackingPatientIds,
+} from "@/lib/practitioner/dashboardMetrics"
 
-export default async function PatientsListPage() {
+type FilterKind = "alerts" | "critical" | "active"
+const FILTER_KINDS: FilterKind[] = ["alerts", "critical", "active"]
+
+export default async function PatientsListPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>
+}) {
   const user = await getSession()
   if (!user) redirect("/login")
 
+  const { filter: rawFilter } = await searchParams
+  const filter: FilterKind | null = FILTER_KINDS.includes(rawFilter as FilterKind) ? (rawFilter as FilterKind) : null
+
+  const { t } = await getServerI18n()
   const sql = getSql()
 
   const patients = await sql`
@@ -29,6 +46,28 @@ export default async function PatientsListPage() {
     ORDER BY u.name ASC
   `
 
+  // Filter, when present, matches the EXACT SAME id-producing functions the
+  // dashboard cards use to compute their counts — a card showing "2" and
+  // this filtered list can never diverge, since it's the same query.
+  let filteredPatients = patients as Record<string, unknown>[]
+  let filterLabel: string | null = null
+  if (filter) {
+    const ids =
+      filter === "alerts"
+        ? await getOpenAlertPatientIds(String(user.id))
+        : filter === "critical"
+          ? await getCriticalMoodPatientIds(String(user.id))
+          : await getActiveTrackingPatientIds(String(user.id))
+    const idSet = new Set(ids)
+    filteredPatients = patients.filter((p: Record<string, unknown>) => idSet.has(String(p.id)))
+    filterLabel =
+      filter === "alerts"
+        ? t("practitioner.dashboard.openAlerts")
+        : filter === "critical"
+          ? t("practitioner.dashboard.criticalMood")
+          : t("practitioner.dashboard.activeTracking")
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -38,8 +77,24 @@ export default async function PatientsListPage() {
         </p>
       </div>
 
+      {filter && filterLabel && (
+        <div className="flex w-fit items-center gap-2 rounded-full border border-border bg-muted px-3 py-1.5 text-[13px]">
+          <span>{t("practitioner.patients.filterChip", { name: filterLabel, count: filteredPatients.length })}</span>
+          <Link
+            href="/practitioner/patients"
+            aria-label={t("practitioner.patients.clearFilter")}
+            className="flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground hover:bg-border hover:text-foreground"
+          >
+            <X className="h-3 w-3" />
+          </Link>
+        </div>
+      )}
+
+      {filter && filteredPatients.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("practitioner.patients.emptyForFilter")}</p>
+      ) : (
       <div className="flex flex-col gap-3">
-        {patients.map((patient: Record<string, unknown>) => {
+        {filteredPatients.map((patient: Record<string, unknown>) => {
           const mood = patient.latest_mood ? Number(patient.latest_mood) : null
           const hasAlerts = Number(patient.open_alerts) > 0
 
@@ -96,6 +151,7 @@ export default async function PatientsListPage() {
           )
         })}
       </div>
+      )}
     </div>
   )
 }

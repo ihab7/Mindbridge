@@ -15,6 +15,12 @@ const DELTA_TONE: Record<ReportIndicator["tone"], string> = {
   neutral: "text-muted-foreground",
 }
 
+const RISK_TONE: Record<"none" | "watch" | "significant", string> = {
+  none: "text-muted-foreground",
+  watch: "text-accent",
+  significant: "text-destructive",
+}
+
 // Renders the clinical letter at A4 proportions from a FROZEN snapshot. All
 // static labels come from `t` bound to the report's own language, so a French
 // report stays French regardless of who reopens it.
@@ -27,6 +33,12 @@ export function ConsultationReportSheet({
 }) {
   const dir = report.language === "ar" ? "rtl" : "ltr"
   const footer = buildFooterText(report.footerNote, t)
+  const priorHeader =
+    report.comparisonMode === "inclusion" ? t("report.table.prior.inclusion") : t("report.table.prior.previousPeriod")
+  // Reports generated before these fields existed have frozen snapshots
+  // without them — default rather than crash when reopening an old report.
+  const treatments = report.treatments ?? []
+  const riskAssessment = report.riskAssessment ?? { level: "none" as const, detail: null }
 
   return (
     <div
@@ -57,7 +69,7 @@ export function ConsultationReportSheet({
         </div>
       )}
 
-      <ReportPatientBlock patient={report.patient} t={t} />
+      <ReportPatientBlock patient={report.patient} diagnosis={report.diagnosis} t={t} />
 
       {/* ── SYNTHÈSE CLINIQUE ── */}
       <div className="report-section mt-5">
@@ -67,7 +79,7 @@ export function ConsultationReportSheet({
             <tr className="border-b border-border text-start text-muted-foreground">
               <th className="py-1 pe-2 text-start font-medium">{t("report.table.indicator")}</th>
               <th className="py-1 pe-2 text-start font-medium">{t("report.table.period")}</th>
-              <th className="py-1 pe-2 text-start font-medium">{t("report.table.prior")}</th>
+              <th className="py-1 pe-2 text-start font-medium">{priorHeader}</th>
               <th className="py-1 text-start font-medium">{t("report.table.evolution")}</th>
             </tr>
           </thead>
@@ -100,6 +112,35 @@ export function ConsultationReportSheet({
         )}
       </div>
 
+      {/* ── TRAITEMENT EN COURS ── always present, rows or not. */}
+      <div className="report-section mt-5">
+        <SectionHeader>{t("report.section.treatment")}</SectionHeader>
+        {treatments.length > 0 ? (
+          <table className="mt-2 w-full border-collapse text-[11px]">
+            <thead>
+              <tr className="border-b border-border text-start text-muted-foreground">
+                <th className="py-1 pe-2 text-start font-medium">{t("report.treatment.medication")}</th>
+                <th className="py-1 pe-2 text-start font-medium">{t("report.treatment.dosage")}</th>
+                <th className="py-1 pe-2 text-start font-medium">{t("report.treatment.frequency")}</th>
+                <th className="py-1 text-start font-medium">{t("report.treatment.since")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {treatments.map((tr, i) => (
+                <tr key={i} className="border-b border-border/60">
+                  <td className="py-1.5 pe-2 font-medium">{tr.medicationName}</td>
+                  <td className="py-1.5 pe-2 text-muted-foreground">{tr.dosage ?? "—"}</td>
+                  <td className="py-1.5 pe-2 text-muted-foreground">{tr.frequency ?? "—"}</td>
+                  <td className="py-1.5 text-muted-foreground">{tr.startDate ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="mt-2 text-[11px] text-muted-foreground">{t("report.treatment.empty")}</p>
+        )}
+      </div>
+
       {/* ── PROGRAMME ASSIGNÉ ── */}
       {report.programSummary && (
         <div className="report-section mt-5">
@@ -107,6 +148,16 @@ export function ConsultationReportSheet({
           <p className="mt-2 text-[11px] leading-relaxed">{report.programSummary}</p>
         </div>
       )}
+
+      {/* ── ÉVALUATION DU RISQUE ── mandatory at generation, always present.
+          Rendered BEFORE Observations: the practitioner's free-text notes
+          often comment on the risk assessment, so risk is stated first. */}
+      <div className="report-section mt-5">
+        <SectionHeader>{t("report.section.risk")}</SectionHeader>
+        <p className={`mt-2 whitespace-pre-wrap text-[11px] leading-relaxed font-medium ${RISK_TONE[riskAssessment.level]}`}>
+          {t(`report.risk.sentence.${riskAssessment.level}`, { detail: riskAssessment.detail ?? "" })}
+        </p>
+      </div>
 
       {/* ── OBSERVATIONS DU PRATICIEN ── */}
       <div className="report-section mt-5">
@@ -120,13 +171,15 @@ export function ConsultationReportSheet({
 
       {/* ── FOOTER ──
           Body prose, NOT a heading: no uppercase, no letter-spacing, no
-          SectionHeader styling. The practitioner's custom note must render
-          exactly as typed — only the mandatory disclaimer text is appended
-          when missing, never a case transform. */}
+          SectionHeader styling. The mandatory disclaimer always renders first,
+          in full, on its own line; the practitioner's custom note (if any)
+          renders exactly as typed on a SECOND line — it is never merged into
+          or shortens the disclaimer. */}
       <div className="report-section mt-6 flex items-end justify-between gap-6 border-t border-border pt-3">
-        <p className="max-w-[58%] text-[10px] normal-case leading-snug tracking-normal text-muted-foreground">
-          {footer}
-        </p>
+        <div className="max-w-[58%] text-[10px] normal-case leading-snug tracking-normal text-muted-foreground">
+          <p>{footer.disclaimer}</p>
+          {footer.customNote && <p className="mt-1">{footer.customNote}</p>}
+        </div>
         <div className="text-end">
           <div className="h-8 w-[150px] border-b border-border" />
           <div className="mt-1 text-[10px] text-muted-foreground">{t("report.footer.signature")}</div>

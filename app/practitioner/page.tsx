@@ -6,12 +6,16 @@ import Link from "next/link"
 import { Users, Bell, TrendingDown, Pill } from "lucide-react"
 import { MentalStatusBadge } from "@/components/mental-status-badge"
 import { ConsultationReportWidget } from "@/components/practitioner/consultation-report/report-widget"
+import { DashboardStatCard } from "@/components/practitioner/DashboardStatCard"
+import { computeDashboardMetrics } from "@/lib/practitioner/dashboardMetrics"
+import { getServerI18n } from "@/lib/server-i18n"
 
 export default async function PractitionerDashboard() {
   const user = await getSession()
   if (!user) redirect("/login")
 
   const sql = getSql()
+  const { t } = await getServerI18n()
 
   const patients = await sql`
     SELECT u.id, u.name,
@@ -23,6 +27,9 @@ export default async function PractitionerDashboard() {
     ORDER BY u.name ASC
   `
 
+  // Recent-activity feed only (top 5) — a separate concern from the Open
+  // Alerts CARD count below, which must be the true unlimited count so it
+  // never diverges from the filtered patient list it links to.
   const openAlerts = await sql`
     SELECT a.*, u.name as patient_name
     FROM alerts a
@@ -33,11 +40,7 @@ export default async function PractitionerDashboard() {
     LIMIT 5
   `
 
-  const totalPatients = patients.length
-  const totalOpenAlerts = openAlerts.length
-  const criticalPatients = patients.filter(
-    (p: Record<string, unknown>) => Number(p.latest_mood) <= 3
-  ).length
+  const metrics = await computeDashboardMetrics(String(user.id))
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,27 +55,38 @@ export default async function PractitionerDashboard() {
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
+        <DashboardStatCard
+          href="/practitioner/patients"
           icon={<Users className="h-5 w-5" />}
-          label="Total Patients"
-          value={String(totalPatients)}
+          label={t("practitioner.dashboard.totalPatients")}
+          value={String(metrics.totalPatients)}
+          ariaLabel={t("practitioner.dashboard.aria.totalPatients", { count: metrics.totalPatients })}
         />
-        <StatCard
+        <DashboardStatCard
+          href="/practitioner/patients?filter=alerts"
           icon={<Bell className="h-5 w-5" />}
-          label="Open Alerts"
-          value={String(totalOpenAlerts)}
-          variant={totalOpenAlerts > 0 ? "warning" : "default"}
+          label={t("practitioner.dashboard.openAlerts")}
+          value={String(metrics.openAlerts)}
+          variant={metrics.openAlerts > 0 ? "warning" : "default"}
+          ariaLabel={t("practitioner.dashboard.aria.openAlerts", { count: metrics.openAlerts })}
         />
-        <StatCard
+        <DashboardStatCard
+          href="/practitioner/patients?filter=critical"
           icon={<TrendingDown className="h-5 w-5" />}
-          label="Critical Mood"
-          value={String(criticalPatients)}
-          variant={criticalPatients > 0 ? "danger" : "default"}
+          label={t("practitioner.dashboard.criticalMood")}
+          value={String(metrics.criticalMood)}
+          variant={metrics.criticalMood > 0 ? "danger" : "default"}
+          ariaLabel={t("practitioner.dashboard.aria.criticalMood", { count: metrics.criticalMood })}
         />
-        <StatCard
+        <DashboardStatCard
+          href="/practitioner/patients?filter=active"
           icon={<Pill className="h-5 w-5" />}
-          label="Active Tracking"
-          value={`${patients.filter((p: Record<string, unknown>) => p.last_entry_at).length}/${totalPatients}`}
+          label={t("practitioner.dashboard.activeTracking")}
+          value={`${metrics.activeTracking}/${metrics.activeTrackingTotal}`}
+          ariaLabel={t("practitioner.dashboard.aria.activeTracking", {
+            active: metrics.activeTracking,
+            total: metrics.activeTrackingTotal,
+          })}
         />
       </div>
 
@@ -163,39 +177,6 @@ export default async function PractitionerDashboard() {
                 </div>
               </Link>
             ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function StatCard({
-  icon,
-  label,
-  value,
-  variant = "default",
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-  variant?: "default" | "warning" | "danger"
-}) {
-  const iconBg =
-    variant === "danger"
-      ? "bg-destructive/10 text-destructive"
-      : variant === "warning"
-        ? "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"
-        : "bg-primary/10 text-primary"
-
-  return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center gap-3">
-        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${iconBg}`}>
-          {icon}
-        </div>
-        <div>
-          <p className="text-2xl font-bold text-card-foreground">{value}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
         </div>
       </div>
     </div>

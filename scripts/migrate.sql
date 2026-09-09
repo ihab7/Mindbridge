@@ -390,3 +390,91 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_clinical_letters_seq
 -- filtering) and inside `snapshot` itself (so reopening is self-describing).
 ALTER TABLE clinical_letter_reports
   ADD COLUMN IF NOT EXISTS format TEXT NOT NULL DEFAULT 'clinical' CHECK (format IN ('clinical', 'narrative'));
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Clinical-depth fields: diagnosis on the patient link record, and an
+-- ongoing-treatments table. Free text (no controlled vocabulary) — the
+-- practitioner records whatever coding system they use. `diagnosis_updated_at`
+-- is set by the application whenever code/label change, not by a trigger, so
+-- it always reflects the practitioner's own edit, not incidental row writes.
+-- ─────────────────────────────────────────────────────────────────────────
+ALTER TABLE patients ADD COLUMN IF NOT EXISTS diagnosis_code TEXT NULL;
+ALTER TABLE patients ADD COLUMN IF NOT EXISTS diagnosis_label TEXT NULL;
+ALTER TABLE patients ADD COLUMN IF NOT EXISTS diagnosis_updated_at TIMESTAMPTZ NULL;
+
+-- `patient_id` references users(id), matching journal_entries/alerts/etc. —
+-- "patientId" throughout the app means the patient's users.id, not patients.id.
+CREATE TABLE IF NOT EXISTS patient_treatments (
+  id              SERIAL PRIMARY KEY,
+  patient_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  practitioner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  medication_name TEXT NOT NULL,
+  dosage          TEXT NULL,
+  frequency       TEXT NULL,
+  start_date      DATE NULL,
+  end_date        DATE NULL,
+  status          TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'stopped')),
+  notes           TEXT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_patient_treatments_patient ON patient_treatments(patient_id);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Comparaison mode and risk assessment, mirrored as top-level columns
+-- alongside `snapshot` so plain SQL can query them (e.g. counting
+-- significant-risk reports) without JSON parsing. The snapshot remains the
+-- frozen source of truth for reopening a report — these columns are a query
+-- convenience, not a replacement.
+--
+-- NOTE: there is no separate `narrative_reports` table in this schema —
+-- narrative-format reports are rows in `clinical_letter_reports` with
+-- format = 'narrative'. `comparison_mode` is simply NULL for those rows,
+-- since narrative reports have no indicator table and never offer that
+-- selector.
+--
+-- Order matters: add columns first (no constraint), backfill from the
+-- existing snapshot JSONB, rewrite the pre-rename 'high' value to
+-- 'significant', THEN add the CHECK constraints — so the constraint is
+-- never evaluated against not-yet-backfilled or not-yet-renamed data.
+-- ─────────────────────────────────────────────────────────────────────────
+ALTER TABLE clinical_letter_reports
+  ADD COLUMN IF NOT EXISTS comparison_mode TEXT,
+  ADD COLUMN IF NOT EXISTS risk_level TEXT,
+  ADD COLUMN IF NOT EXISTS risk_detail TEXT;
+
+UPDATE clinical_letter_reports
+SET risk_level = snapshot->'riskAssessment'->>'level',
+    risk_detail = snapshot->'riskAssessment'->>'detail',
+    comparison_mode = snapshot->>'comparisonMode'
+WHERE risk_level IS NULL;
+
+UPDATE clinical_letter_reports
+SET risk_level = 'significant'
+WHERE risk_level = 'high';
+
+DO $$
+BEGIN
+  ALTER TABLE clinical_letter_reports
+    ADD CONSTRAINT clinical_letter_reports_risk_level_valid
+    CHECK (risk_level IS NULL OR risk_level IN ('none', 'watch', 'significant'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER TABLE clinical_letter_reports
+    ADD CONSTRAINT clinical_letter_reports_risk_detail_required
+    CHECK (risk_level IS NULL
+           OR risk_level = 'none'
+           OR (risk_detail IS NOT NULL AND length(trim(risk_detail)) > 0));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$
+BEGIN
+  ALTER TABLE clinical_letter_reports
+    ADD CONSTRAINT clinical_letter_reports_comparison_mode_valid
+    CHECK (comparison_mode IS NULL OR comparison_mode IN ('withinWindow', 'previousPeriod', 'inclusion'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

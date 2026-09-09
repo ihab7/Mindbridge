@@ -6,6 +6,9 @@
 
 import { buildClinicalSummary, type ClinicalEntry, type SignalTone } from "@/lib/wellbeing/clinicalSummary"
 import type { Translator } from "@/lib/server-i18n"
+// Type-only import: erased at compile time, so this does not create a runtime
+// circular dependency with data.ts (which imports value exports from here).
+import type { ReportDiagnosis, ReportTreatment } from "./data"
 
 export type ReportLanguage = "fr" | "en" | "ar"
 
@@ -22,6 +25,21 @@ export type ReportIndicator = {
   prior: string | null // null when no baseline
   delta: string | null // "+1,3" — always carries its sign
   tone: SignalTone
+}
+
+// The comparison basis for the indicator table's "prior" column. Practitioner
+// -selected at generation time (clinical format only — narrative has no
+// indicator table) and frozen into the snapshot so a reopened report still
+// shows which basis was used.
+export type ComparisonMode = "previousPeriod" | "inclusion"
+
+// Practitioner's own clinical judgment, never auto-derived from clinicalSummary's
+// tone flags — the field starts unselected regardless of what those flags show,
+// and detail is mandatory for anything beyond "none".
+export type RiskLevel = "none" | "watch" | "significant"
+export type RiskAssessment = {
+  level: RiskLevel
+  detail: string | null // required (non-empty) when level !== "none"
 }
 
 export type ConsultationReport = {
@@ -45,11 +63,15 @@ export type ConsultationReport = {
     fileNumber: string | null
     followedSince: string | null // localized date string, or null
   }
+  diagnosis: ReportDiagnosis | null
+  treatments: ReportTreatment[]
   indicators: ReportIndicator[]
+  comparisonMode: ComparisonMode
   notableEvents: string[]
   programSummary: string | null
   observations: string | null
-  footerNote: string | null // practitioner override; disclaimer still enforced by the sheet
+  riskAssessment: RiskAssessment
+  footerNote: string | null // practitioner's custom note; disclaimer is separate and mandatory
   dataCompleteness: {
     daysLogged: number
     daysTotal: number
@@ -69,9 +91,14 @@ export type BuildReportInput = {
     fileNumber: string | null
     followedSince: string | null // ISO date or null
   }
+  diagnosis: ReportDiagnosis | null
+  treatments: ReportTreatment[]
   entries: ClinicalEntry[]
+  comparisonMode: ComparisonMode
+  priorEntries: ClinicalEntry[]
   programSummary: string | null
   observations: string | null
+  riskAssessment: RiskAssessment
   footerNote: string | null
   t: Translator
 }
@@ -123,29 +150,30 @@ export function formatReportDate(iso: string, language: ReportLanguage): string 
 }
 
 /**
- * The footer disclaimer text, shared by both report formats. The self-reported
- * -data phrase is mandatory and cannot be removed — only appended to — so a
- * custom footerNote that doesn't already contain it gets the mandatory
- * sentence appended.
+ * The mandatory disclaimer, shared by both report formats, plus the
+ * practitioner's own custom note (if any) — kept SEPARATE so the sheet can
+ * render the disclaimer first and the custom note as its own second line.
+ * The disclaimer is never shortened, merged, or replaced by a custom note.
  */
-export function buildFooterText(footerNote: string | null, t: Translator): string {
-  const phrase = t("report.footer.selfReportedPhrase")
-  let footer = footerNote ?? t("report.footer.default")
-  if (!footer.includes(phrase)) footer = `${footer} ${t("report.footer.selfReportedSentence")}`
-  return footer
+export function buildFooterText(footerNote: string | null, t: Translator): { disclaimer: string; customNote: string | null } {
+  return { disclaimer: t("report.footer.disclaimer"), customNote: footerNote }
 }
 
 export function buildConsultationReport(input: BuildReportInput): ConsultationReport {
-  const { language, period, entries, t } = input
+  const { language, period, entries, comparisonMode, priorEntries, t } = input
   const windowDays = daySpan(period.from, period.to)
 
   // SINGLE source of truth: reuse the practitioner clinical summary. now=period.to
-  // makes clinicalSummary window exactly [from..to].
+  // makes clinicalSummary window exactly [from..to]. Comparaison mode routes
+  // "prior" through the separately fetched previous-period/inclusion entries
+  // instead of clinicalSummary's internal same-window half-split.
   const summary = buildClinicalSummary(entries, {
     t,
     locale: language,
     now: new Date(`${period.to}T12:00:00`),
     windowDays,
+    comparisonMode,
+    priorEntries,
   })
 
   const indicators: ReportIndicator[] = summary.signals.map((s) => {
@@ -180,10 +208,14 @@ export function buildConsultationReport(input: BuildReportInput): ConsultationRe
         ? formatReportDate(`${input.patient.followedSince}T00:00:00`, language)
         : null,
     },
+    diagnosis: input.diagnosis,
+    treatments: input.treatments,
     indicators,
+    comparisonMode,
     notableEvents,
     programSummary: input.programSummary,
     observations: input.observations,
+    riskAssessment: input.riskAssessment,
     footerNote: input.footerNote,
     dataCompleteness: { daysLogged: summary.daysLogged, daysTotal: summary.daysTotal },
     isThin: summary.isThin,

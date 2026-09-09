@@ -63,6 +63,14 @@ type BuildOptions = {
   locale: string
   now?: Date
   windowDays?: number
+  // "withinWindow" (default) is the original behavior: prior = first half of
+  // the same window, current = second half — used by the practitioner
+  // wellbeing panel and unchanged. The report's Comparaison modes replace
+  // that split entirely: current becomes the mean of the FULL window, and
+  // prior comes from `priorEntries` (a separately fetched period), never
+  // computed by splitting `entries`.
+  comparisonMode?: "withinWindow" | "previousPeriod" | "inclusion"
+  priorEntries?: ClinicalEntry[]
 }
 
 const TONE_ORDER: Record<SignalTone, number> = { danger: 0, warning: 1, neutral: 2, good: 3 }
@@ -83,9 +91,19 @@ function fmt1(n: number): string {
   return n.toFixed(1)
 }
 
+function dedupeByDay(entries: ClinicalEntry[]): ClinicalEntry[] {
+  const byDay = new Map<string, ClinicalEntry>()
+  for (const e of entries) {
+    const key = toDateKey(new Date(e.created_at))
+    const existing = byDay.get(key)
+    if (!existing || new Date(e.created_at) > new Date(existing.created_at)) byDay.set(key, e)
+  }
+  return [...byDay.values()]
+}
+
 export function buildClinicalSummary(
   entries: ClinicalEntry[],
-  { t, locale, now = new Date(), windowDays = 14 }: BuildOptions,
+  { t, locale, now = new Date(), windowDays = 14, comparisonMode = "withinWindow", priorEntries }: BuildOptions,
 ): ClinicalSummary {
   const shortDate = new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" })
   const fmtDate = (iso: string) => shortDate.format(new Date(`${iso}T00:00:00`))
@@ -136,6 +154,23 @@ export function buildClinicalSummary(
   const priorLogged = priorIdx.filter((i) => mood[i] != null).length
   const hasBaseline = priorLogged >= 3
 
+  // External-prior modes (report Comparaison): "current" is the mean of the
+  // FULL window (not just its recent half), and "prior" comes entirely from
+  // a separately fetched period — never from splitting `entries`.
+  const useExternalPrior = comparisonMode !== "withinWindow"
+  const fullWindowIdx = dates.map((_, i) => i)
+  const priorDaily = useExternalPrior ? dedupeByDay(priorEntries ?? []) : []
+  const priorMoodVals = priorDaily.map((e) => Number(e.mood))
+  const priorAnxietyVals = priorDaily.map((e) => Number(e.anxiety))
+  const priorSleepVals = priorDaily.map((e) => Number(e.sleep_hours))
+  const priorAdherencePct =
+    priorDaily.length > 0
+      ? Math.round((priorDaily.filter((e) => e.medication_taken).length / priorDaily.length) * 100)
+      : null
+  const hasExternalBaseline = priorDaily.length >= 3
+  const currentIdx = useExternalPrior ? fullWindowIdx : recentIdx
+  const baselineOk = useExternalPrior ? hasExternalBaseline : hasBaseline
+
   function directionTrend(delta: number | null, threshold: number): "up" | "down" | "flat" {
     if (delta == null) return "flat"
     if (delta > threshold) return "up"
@@ -147,9 +182,9 @@ export function buildClinicalSummary(
 
   // ---- Anxiety (higher is worse) ----
   {
-    const recent = mean(present(anxiety, recentIdx))
-    const prior = mean(present(anxiety, priorIdx))
-    const delta = hasBaseline && recent != null && prior != null ? recent - prior : null
+    const recent = mean(present(anxiety, currentIdx))
+    const prior = useExternalPrior ? mean(priorAnxietyVals) : mean(present(anxiety, priorIdx))
+    const delta = baselineOk && recent != null && prior != null ? recent - prior : null
     let tone: SignalTone = "neutral"
     if (recent != null) {
       const rising = delta != null && delta >= 0.2
@@ -162,21 +197,21 @@ export function buildClinicalSummary(
       label: t("practitioner.wellbeing.chip.anxiety"),
       value: recent != null ? fmt1(recent) : "—",
       priorValue:
-        hasBaseline && prior != null
+        baselineOk && prior != null
           ? t("practitioner.wellbeing.chip.was", { value: fmt1(prior) })
           : t("practitioner.wellbeing.chip.noBaseline"),
       trend: directionTrend(delta, 0.2),
       tone,
       currentNum: recent,
-      priorNum: hasBaseline ? prior : null,
+      priorNum: baselineOk ? prior : null,
     })
   }
 
   // ---- Mood (higher is better) ----
   {
-    const recent = mean(present(mood, recentIdx))
-    const prior = mean(present(mood, priorIdx))
-    const delta = hasBaseline && recent != null && prior != null ? recent - prior : null
+    const recent = mean(present(mood, currentIdx))
+    const prior = useExternalPrior ? mean(priorMoodVals) : mean(present(mood, priorIdx))
+    const delta = baselineOk && recent != null && prior != null ? recent - prior : null
     let tone: SignalTone = "neutral"
     if (recent != null) {
       const falling = delta != null && delta <= -0.2
@@ -189,21 +224,21 @@ export function buildClinicalSummary(
       label: t("practitioner.wellbeing.chip.mood"),
       value: recent != null ? fmt1(recent) : "—",
       priorValue:
-        hasBaseline && prior != null
+        baselineOk && prior != null
           ? t("practitioner.wellbeing.chip.was", { value: fmt1(prior) })
           : t("practitioner.wellbeing.chip.noBaseline"),
       trend: directionTrend(delta, 0.2),
       tone,
       currentNum: recent,
-      priorNum: hasBaseline ? prior : null,
+      priorNum: baselineOk ? prior : null,
     })
   }
 
   // ---- Sleep (higher is better) ----
   {
-    const recent = mean(present(sleepHours, recentIdx))
-    const prior = mean(present(sleepHours, priorIdx))
-    const delta = hasBaseline && recent != null && prior != null ? recent - prior : null
+    const recent = mean(present(sleepHours, currentIdx))
+    const prior = useExternalPrior ? mean(priorSleepVals) : mean(present(sleepHours, priorIdx))
+    const delta = baselineOk && recent != null && prior != null ? recent - prior : null
     let tone: SignalTone = "neutral"
     if (recent != null) {
       if (recent < 5.5 || (delta != null && delta <= -1.0)) tone = "danger"
@@ -215,25 +250,25 @@ export function buildClinicalSummary(
       label: t("practitioner.wellbeing.chip.sleep"),
       value: recent != null ? `${fmt1(recent)}h` : "—",
       priorValue:
-        hasBaseline && prior != null
+        baselineOk && prior != null
           ? t("practitioner.wellbeing.chip.was", { value: `${fmt1(prior)}h` })
           : t("practitioner.wellbeing.chip.noBaseline"),
       trend: directionTrend(delta, 0.2),
       tone,
       currentNum: recent,
-      priorNum: hasBaseline ? prior : null,
+      priorNum: baselineOk ? prior : null,
     })
   }
 
   // ---- Adherence (higher is better), percent of logged days med was taken ----
   {
-    const recentDays = recentIdx.filter((i) => mood[i] != null)
+    const recentDays = currentIdx.filter((i) => mood[i] != null)
     const priorDays = priorIdx.filter((i) => mood[i] != null)
     const pct = (idx: number[]) =>
       idx.length ? Math.round((idx.filter((i) => !doseMissed[i]).length / idx.length) * 100) : null
     const recent = pct(recentDays)
-    const prior = pct(priorDays)
-    const delta = hasBaseline && recent != null && prior != null ? recent - prior : null
+    const prior = useExternalPrior ? priorAdherencePct : pct(priorDays)
+    const delta = baselineOk && recent != null && prior != null ? recent - prior : null
     let tone: SignalTone = "neutral"
     if (recent != null) {
       if (recent < 70) tone = "danger"
@@ -245,13 +280,13 @@ export function buildClinicalSummary(
       label: t("practitioner.wellbeing.chip.adherence"),
       value: recent != null ? `${recent}%` : "—",
       priorValue:
-        hasBaseline && prior != null
+        baselineOk && prior != null
           ? t("practitioner.wellbeing.chip.was", { value: `${prior}%` })
           : t("practitioner.wellbeing.chip.noBaseline"),
       trend: directionTrend(delta, 3),
       tone,
       currentNum: recent,
-      priorNum: hasBaseline ? prior : null,
+      priorNum: baselineOk ? prior : null,
     })
   }
 

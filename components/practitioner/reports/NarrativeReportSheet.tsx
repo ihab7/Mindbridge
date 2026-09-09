@@ -8,9 +8,19 @@ import { ReportPatientBlock } from "./ReportPatientBlock"
 // same letterhead + patient block + disclaimer as the clinical letter, but
 // warm prose sections instead of an indicator table, and NO signature block:
 // narrative summaries are notes, not formally signed documents.
+const RISK_TONE: Record<"none" | "watch" | "significant", string> = {
+  none: "text-muted-foreground",
+  watch: "text-accent",
+  significant: "text-destructive",
+}
+
 export function NarrativeReportSheet({ report, t }: { report: NarrativeReport; t: Translator }) {
   const dir = report.language === "ar" ? "rtl" : "ltr"
   const footer = buildFooterText(report.footerNote, t)
+  // Reports generated before these fields existed have frozen snapshots
+  // without them — default rather than crash when reopening an old report.
+  const treatments = report.treatments ?? []
+  const riskAssessment = report.riskAssessment ?? { level: "none" as const, detail: null }
 
   const sections: { key: string; title: string; body?: string; bullets?: string[] }[] = [
     { key: "mood", title: t("report.narrative.section.mood"), body: report.mood },
@@ -59,7 +69,23 @@ export function NarrativeReportSheet({ report, t }: { report: NarrativeReport; t
         </div>
       )}
 
-      <ReportPatientBlock patient={report.patient} t={t} />
+      <ReportPatientBlock patient={report.patient} diagnosis={report.diagnosis} t={t} />
+
+      {/* ── TRAITEMENT EN COURS ── always present, rows or not. */}
+      <div className="report-section mt-5">
+        <SectionHeader>{t("report.narrative.section.treatment")}</SectionHeader>
+        {treatments.length > 0 ? (
+          <ul className="mt-2 list-disc space-y-0.5 ps-5 text-[11px] leading-[1.8]">
+            {treatments.map((tr, i) => (
+              <li key={i}>
+                {[tr.medicationName, tr.dosage, tr.frequency].filter(Boolean).join(" — ")}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-[11px] text-muted-foreground">{t("report.treatment.empty")}</p>
+        )}
+      </div>
 
       {sections.map((section) => (
         <div key={section.key} className="report-section mt-5">
@@ -76,12 +102,25 @@ export function NarrativeReportSheet({ report, t }: { report: NarrativeReport; t
         </div>
       ))}
 
-      {/* ── FOOTER ── body prose, not a heading — no uppercase/letter-spacing.
-          No signature block: narrative summaries aren't formally signed. */}
-      <div className="report-section mt-6 border-t border-border pt-3">
-        <p className="max-w-[80%] text-[10px] normal-case leading-snug tracking-normal text-muted-foreground">
-          {footer}
+      {/* ── ÉVALUATION DU RISQUE ── mandatory at generation, always present.
+          Narrative has no Observations block, so immediately before the
+          footer is the equivalent "last section" position. */}
+      <div className="report-section mt-5">
+        <SectionHeader>{t("report.section.risk")}</SectionHeader>
+        <p className={`mt-2 whitespace-pre-wrap text-[11px] leading-relaxed font-medium ${RISK_TONE[riskAssessment.level]}`}>
+          {t(`report.risk.sentence.${riskAssessment.level}`, { detail: riskAssessment.detail ?? "" })}
         </p>
+      </div>
+
+      {/* ── FOOTER ── body prose, not a heading — no uppercase/letter-spacing.
+          No signature block: narrative summaries aren't formally signed. The
+          mandatory disclaimer always renders first, in full; the practitioner's
+          custom note (if any) is a second line, never merged into it. */}
+      <div className="report-section mt-6 border-t border-border pt-3">
+        <div className="max-w-[80%] text-[10px] normal-case leading-snug tracking-normal text-muted-foreground">
+          <p>{footer.disclaimer}</p>
+          {footer.customNote && <p className="mt-1">{footer.customNote}</p>}
+        </div>
       </div>
     </div>
   )

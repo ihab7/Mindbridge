@@ -10,6 +10,7 @@ import { ReportsSection } from "@/components/practitioner/reports/ReportsSection
 import { AlertList } from "@/components/practitioner/alert-list"
 import { MentalStatusBadge } from "@/components/mental-status-badge"
 import { PractitionerFeedbackForm } from "@/components/practitioner/feedback-form"
+import { ClinicalRecordCard } from "@/components/practitioner/clinical-record-card"
 import { SessionPrepViewer } from "@/components/practitioner/session-prep-viewer"
 import { ProgramProgressCard } from "@/components/practitioner/program-progress-card"
 import {
@@ -115,6 +116,10 @@ export default async function PatientDetailPage({
 
       <div id="practitioner-feedback" className="max-w-3xl scroll-mt-20">
         <PractitionerFeedbackForm patientId={patientId} />
+      </div>
+
+      <div className="max-w-3xl">
+        <ClinicalRecordCard patientId={patientId} />
       </div>
 
       {/* Wellbeing panel — scannable clinical summary over full-precision chart */}
