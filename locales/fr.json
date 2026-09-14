@@ -679,6 +679,11 @@
   "video.room.status.cancelled": "Annulée",
   "video.room.status.no_show": "Non répondu",
   "video.room.loading": "Connexion à l'appel...",
+  "video.room.permission.checking": "Vérification de la caméra...",
+  "video.room.permission.denied": "L'accès à la caméra et au microphone est bloqué. Autorisez-le dans les paramètres de votre navigateur (icône 🔒 dans la barre d'adresse), puis rechargez la page.",
+  "video.room.permission.insecure": "La caméra et le microphone sont inaccessibles car cette page n'est pas servie sur une connexion sécurisée. Ouvrez la consultation depuis localhost ou une adresse en HTTPS.",
+  "video.room.permission.error": "Impossible d'accéder à la caméra et au microphone. Vérifiez qu'aucune autre application ne les utilise, puis réessayez.",
+  "video.room.permission.retry": "Réessayer",
   "video.room.loadError": "Impossible de charger la salle de consultation. Vérifiez votre connexion et rafraîchissez la page. Si le problème persiste, contactez le support.",
   "video.room.backToDashboard": "Retour au tableau de bord"
 }

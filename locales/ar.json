@@ -680,6 +680,11 @@
   "video.room.status.cancelled": "ملغاة",
   "video.room.status.no_show": "لم يتم الرد",
   "video.room.loading": "جارٍ الاتصال بالمكالمة...",
+  "video.room.permission.checking": "جارٍ التحقق من الكاميرا...",
+  "video.room.permission.denied": "تم حظر الوصول إلى الكاميرا والميكروفون. اسمح به في إعدادات المتصفح ثم أعد تحميل الصفحة.",
+  "video.room.permission.insecure": "الكاميرا والميكروفون غير متاحين لأن هذه الصفحة لا تُقدَّم عبر اتصال آمن. افتح الاستشارة من localhost أو من عنوان HTTPS.",
+  "video.room.permission.error": "تعذر الوصول إلى الكاميرا والميكروفون. تأكد من عدم استخدامهما من قبل تطبيق آخر ثم حاول مرة أخرى.",
+  "video.room.permission.retry": "إعادة المحاولة",
   "video.room.loadError": "تعذر تحميل غرفة الاستشارة. تحقق من اتصالك وأعد تحميل الصفحة. إذا استمرت المشكلة، تواصل مع الدعم.",
   "video.room.backToDashboard": "العودة إلى لوحة التحكم"
 }
