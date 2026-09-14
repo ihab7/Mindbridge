@@ -53,6 +53,38 @@ export default async function PatientDashboard() {
     WHERE receiver_id = ${user.id} AND read = false
   `) as Record<string, unknown>[]
 
+  // Recent-entries card. Counted in SQL rather than from `entries` above:
+  // that one is LIMIT 14, so it cannot answer "how many days this month"
+  // once someone logs more than 14 days. All three scalars come from the
+  // same statement so the month boundary, the last-entry date and "today"
+  // are all read off one clock.
+  const entriesStatsRows = (await sql`
+    SELECT
+      COUNT(DISTINCT created_at::date)
+        FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE)) AS days_this_month,
+      MAX(created_at::date)::text AS last_entry_date,
+      CURRENT_DATE::text AS today
+    FROM journal_entries
+    WHERE patient_id = ${user.id}
+  `) as Record<string, unknown>[]
+  const entriesStats = entriesStatsRows[0] ?? {}
+
+  // One row per calendar day (the latest that day), newest first — the
+  // expanded list never shows the same day twice.
+  const recentDayRows = (await sql`
+    SELECT DISTINCT ON (created_at::date)
+      created_at::date::text AS entry_date, mood, sleep_hours, medication_taken
+    FROM journal_entries
+    WHERE patient_id = ${user.id}
+    ORDER BY created_at::date DESC, created_at DESC
+    LIMIT 10
+  `) as Record<string, unknown>[]
+
+  // Cast to text in SQL above rather than reading the driver's Date object:
+  // neon hydrates date/timestamptz columns into JS Dates, and stringifying
+  // one yields "Thu Sep 14 2026 …", not an ISO day.
+  const toDateOnly = (v: unknown) => String(v)
+
   // Preloaded so SessionPrepCard can pick its initial edit/compact state on
   // first paint — no flash of the edit form before jumping to compact.
   const sessionPrepRows = (await sql`
@@ -115,7 +147,17 @@ export default async function PatientDashboard() {
         </div>
       </div>
 
-      <RecentEntries entries={entries.slice(0, 7) as any} />
+      <RecentEntries
+        daysThisMonth={Number(entriesStats.days_this_month ?? 0)}
+        lastEntryDate={entriesStats.last_entry_date ? toDateOnly(entriesStats.last_entry_date) : null}
+        todayDate={toDateOnly(entriesStats.today)}
+        entries={recentDayRows.map((r) => ({
+          date: toDateOnly(r.entry_date),
+          mood: Number(r.mood),
+          sleepHours: Number(r.sleep_hours),
+          medicationTaken: Boolean(r.medication_taken),
+        }))}
+      />
     </div>
   )
 }

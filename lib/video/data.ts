@@ -124,15 +124,45 @@ export type PendingForPatient = {
   upcoming: PatientFacingConsultation[]
 }
 
-/** Everything the patient dashboard's poll needs, in one query. */
+/**
+ * Everything the patient dashboard's poll needs, in one query.
+ *
+ * The two time windows in the WHERE clause are what make the banner
+ * disappear on its own. Nothing else ever clears a row: an unanswered call
+ * stays 'pending' forever, so without them a single stale test row sat at
+ * the top of the dashboard indefinitely AND — because the loop below fills
+ * the prominent slot once — hid every newer call behind it.
+ *
+ * - urgent: visible for 5 minutes after creation. A call nobody picked up in
+ *   that time is over in practice, whatever the row still says.
+ * - scheduled: visible only while its appointment is still ahead. Note this
+ *   means a scheduled call vanishes at its start time, late arrivals
+ *   included — say the word if you want a grace period after scheduled_at.
+ *
+ * 'active' is kept for scheduled (not just 'pending', which is what the
+ * literal rule said): once the practitioner has joined, the row flips to
+ * 'active', and that is exactly the moment the patient most needs the card.
+ */
 export async function getPendingForPatient(sql: Sql, patientId: number): Promise<PendingForPatient> {
   const rows = (await sql`
     SELECT vc.*, u.name AS practitioner_name
     FROM video_consultations vc
     JOIN users u ON u.id = vc.practitioner_id
     WHERE vc.patient_id = ${patientId}
-      AND vc.status IN ('pending', 'active')
-    ORDER BY (vc.mode = 'urgent') DESC, vc.scheduled_at ASC NULLS FIRST, vc.created_at ASC
+      AND (
+        (
+          vc.mode = 'urgent'
+          AND vc.status IN ('pending', 'active')
+          AND vc.created_at > NOW() - INTERVAL '5 minutes'
+        )
+        OR
+        (
+          vc.mode = 'scheduled'
+          AND vc.status IN ('pending', 'active')
+          AND vc.scheduled_at > NOW()
+        )
+      )
+    ORDER BY (vc.mode = 'urgent') DESC, vc.scheduled_at ASC NULLS FIRST, vc.created_at DESC
   `) as Record<string, unknown>[]
 
   const now = Date.now()
@@ -142,6 +172,9 @@ export async function getPendingForPatient(sql: Sql, patientId: number): Promise
   for (const r of rows) {
     const consultation = toPatientFacing(mapRow(r), String(r.practitioner_name))
     if (consultation.mode === "urgent") {
+      // created_at DESC above means the first urgent row here is the most
+      // recent one. A second simultaneous urgent call is deliberately not
+      // shown: two "answer me now" banners at once would be worse than one.
       if (!prominent) prominent = consultation
       continue
     }

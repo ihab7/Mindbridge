@@ -99,6 +99,7 @@ export function VideoCallRoomShell({
       .getUserMedia({ video: true, audio: true })
       .then((stream) => {
         stream.getTracks().forEach((track) => track.stop())
+        console.log("[jitsi] permission granted") // TEMP DIAGNOSTIC
         if (!cancelled) setPermissionState("granted")
       })
       .catch((err: unknown) => {
@@ -118,6 +119,16 @@ export function VideoCallRoomShell({
   useEffect(() => {
     if (permissionState !== "granted" || jitsiReady || loadError) return
     const timer = window.setTimeout(() => {
+      // TEMP DIAGNOSTIC — remove once the load failure is pinned down.
+      // `apiGlobal` is the decisive value: if it reads "function" here, the
+      // script DID load and only onLoad failed to fire (next/script does not
+      // re-fire onLoad for an src it already has cached), which is a very
+      // different bug from the script never arriving.
+      console.log("[jitsi] TIMEOUT after 10s", {
+        scriptLoaded,
+        apiGlobal: typeof window.JitsiMeetExternalAPI,
+        role,
+      })
       setLoadError(true)
       void fetch("/api/video/report-load-error", {
         method: "POST",
@@ -143,11 +154,18 @@ export function VideoCallRoomShell({
     if (permissionState !== "granted") return
     if (!scriptLoaded || loadError || !containerRef.current || apiRef.current) return
     if (!window.JitsiMeetExternalAPI) {
+      console.log("[jitsi] script reported loaded but JitsiMeetExternalAPI is undefined") // TEMP DIAGNOSTIC
       setLoadError(true)
       return
     }
 
-    const api = new window.JitsiMeetExternalAPI("meet.jit.si", {
+    // TEMP DIAGNOSTIC — roomName is logged so both browsers can be compared
+    // side by side; they must be byte-identical.
+    console.log("[jitsi] Instantiating", { roomName, displayName, role, locale })
+
+    let api: JitsiApi
+    try {
+      api = new window.JitsiMeetExternalAPI("meet.jit.si", {
       roomName,
       parentNode: containerRef.current,
       width: "100%",
@@ -181,10 +199,17 @@ export function VideoCallRoomShell({
           "settings",
           "raisehand",
           "videoquality",
-          "tileview",
-        ],
-      },
-    })
+            "tileview",
+          ],
+        },
+      })
+    } catch (err) {
+      console.log("[jitsi] Instantiation error: ", err) // TEMP DIAGNOSTIC
+      setLoadError(true)
+      return
+    }
+
+    console.log("[jitsi] Instantiated OK") // TEMP DIAGNOSTIC
     apiRef.current = api
     setJitsiReady(true)
 
@@ -219,8 +244,14 @@ export function VideoCallRoomShell({
         <Script
           src="https://meet.jit.si/external_api.js"
           strategy="afterInteractive"
-          onLoad={() => setScriptLoaded(true)}
-          onError={() => setLoadError(true)}
+          onLoad={() => {
+            console.log("[jitsi] Jitsi script loaded") // TEMP DIAGNOSTIC
+            setScriptLoaded(true)
+          }}
+          onError={() => {
+            console.log("[jitsi] Jitsi script FAILED to load") // TEMP DIAGNOSTIC
+            setLoadError(true)
+          }}
         />
       )}
 

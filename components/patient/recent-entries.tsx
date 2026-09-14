@@ -1,114 +1,149 @@
 "use client"
 
-import { Moon, Pill, Brain, TrendingUp } from "lucide-react"
+import { useEffect, useState } from "react"
+import { IconChevronDown, IconCheck, IconMinus } from "@tabler/icons-react"
 import { useI18n, useT } from "@/components/i18n-provider"
-import {
-  formatSideEffectsForDisplay,
-  parseSideEffectsFromDb,
-} from "@/lib/side-effects"
 
-type Entry = {
-  id: number
+const STORAGE_KEY = "mb_entries_expanded"
+
+export type RecentEntryDay = {
+  /** YYYY-MM-DD, already bucketed per calendar day server-side. */
+  date: string
   mood: number
-  anxiety: number
-  sleep_hours: number
-  medication_taken: boolean
-  side_effects?: string[]
-  side_effects_other?: string | null
-  side_effects_legacy?: string | null
-  challenges: string
-  achievements: string
-  created_at: string
+  sleepHours: number
+  medicationTaken: boolean
 }
 
-function moodColor(mood: number) {
-  if (mood <= 3) return "text-destructive bg-destructive/10"
-  if (mood <= 5) return "text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-500/15"
-  if (mood <= 7) return "text-primary bg-primary/10"
-  return "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/15"
+// Dates arrive as plain YYYY-MM-DD and are anchored at noon before any
+// formatting: parsing a bare date string would land on UTC midnight and a
+// negative timezone offset would then render the previous day.
+function atNoon(dateOnly: string) {
+  return new Date(`${dateOnly}T12:00:00`)
 }
 
-export function RecentEntries({ entries }: { entries: Entry[] }) {
+function daysBetween(fromDateOnly: string, toDateOnly: string) {
+  return Math.round((atNoon(toDateOnly).getTime() - atNoon(fromDateOnly).getTime()) / 86400000)
+}
+
+export function RecentEntries({
+  daysThisMonth,
+  lastEntryDate,
+  todayDate,
+  entries,
+}: {
+  daysThisMonth: number
+  lastEntryDate: string | null
+  /** The server's today, so the relative labels resolve identically on both sides. */
+  todayDate: string
+  entries: RecentEntryDay[]
+}) {
   const { locale } = useI18n()
   const t = useT()
+  const [expanded, setExpanded] = useState(false)
 
-  if (entries.length === 0) {
-    return (
-      <div className="rounded-xl border border-border bg-card p-8 text-center">
-        <p className="text-muted-foreground">{t("patient.entries.empty")}</p>
-      </div>
-    )
+  // Read after mount, never during render: localStorage doesn't exist on the
+  // server, so branching on it in the first render would desync hydration.
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(STORAGE_KEY) === "true") setExpanded(true)
+    } catch {
+      /* private mode / blocked storage — stay collapsed */
+    }
+  }, [])
+
+  function toggle() {
+    setExpanded((prev) => {
+      const next = !prev
+      try {
+        window.localStorage.setItem(STORAGE_KEY, String(next))
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
   }
 
+  function relativeDay(dateOnly: string) {
+    const diff = daysBetween(dateOnly, todayDate)
+    if (diff <= 0) return t("patient.entries.today")
+    if (diff === 1) return t("patient.entries.yesterday")
+    if (diff < 7) return new Intl.DateTimeFormat(locale, { weekday: "long" }).format(atNoon(dateOnly))
+    return new Intl.DateTimeFormat(locale, { day: "numeric", month: "short" }).format(atNoon(dateOnly))
+  }
+
+  const hasHistory = entries.length > 0
+  const headline =
+    daysThisMonth > 0
+      ? t(daysThisMonth === 1 ? "patient.entries.summaryOne" : "patient.entries.summary", { count: daysThisMonth })
+      : t("patient.entries.none")
+
+  // No entry ever recorded: nothing to expand, so the card is inert.
+  const subline =
+    lastEntryDate === null
+      ? t("patient.entries.encourage")
+      : t("patient.entries.lastNote", { when: relativeDay(lastEntryDate) })
+
+  const numberFmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 })
+
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
-      <h3 className="mb-1 text-lg font-semibold text-card-foreground">{t("patient.entries.title")}</h3>
-      <p className="mb-4 text-sm text-muted-foreground">{t("patient.entries.subtitle", { count: entries.length })}</p>
-      <div className="flex flex-col gap-3">
-        {entries.map((entry) => (
-          <div
-            key={entry.id}
-            className="rounded-lg border border-border bg-background p-4"
-          >
-            {(() => {
-              const parsed = parseSideEffectsFromDb(
-                entry.side_effects,
-                entry.side_effects_other,
-                entry.side_effects_legacy
-              )
-              const formatted = formatSideEffectsForDisplay(parsed)
-              return formatted ? (
-                <p className="mb-2 text-sm text-muted-foreground">
-                  <span className="font-medium text-card-foreground">{t("patient.entries.sideEffects")}</span> {formatted}
-                </p>
-              ) : null
-            })()}
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <time className="text-sm font-medium text-card-foreground">
-                {new Date(entry.created_at).toLocaleDateString(locale, {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </time>
-              <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${moodColor(Number(entry.mood))}`}> 
-                  <Brain className="h-3 w-3" />
-                  {t("patient.entries.moodValue", { value: entry.mood })}
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                  <TrendingUp className="h-3 w-3" />
-                  {t("patient.entries.anxietyValue", { value: entry.anxiety })}
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Moon className="h-3 w-3" />
-                {t("patient.entries.sleepHours", { hours: entry.sleep_hours })}
-              </span>
-              <span className={`inline-flex items-center gap-1 ${entry.medication_taken ? "text-primary" : "text-destructive"}`}>
-                <Pill className="h-3 w-3" />
-                {entry.medication_taken ? t("patient.entries.medTaken") : t("patient.entries.medMissed")}
-              </span>
-            </div>
-            {(entry.challenges || entry.achievements) && (
-              <div className="mt-3 flex flex-col gap-1.5 border-t border-border pt-3 text-sm">
-                {entry.challenges && (
-                  <p className="text-muted-foreground">
-                    <span className="font-medium text-card-foreground">{t("patient.entries.challenge")}</span> {entry.challenges}
-                  </p>
-                )}
-                {entry.achievements && (
-                  <p className="text-muted-foreground">
-                    <span className="font-medium text-card-foreground">{t("patient.entries.win")}</span> {entry.achievements}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+    <div className="rounded-xl border border-border bg-card">
+      <div
+        role={hasHistory ? "button" : undefined}
+        tabIndex={hasHistory ? 0 : undefined}
+        aria-expanded={hasHistory ? expanded : undefined}
+        onClick={hasHistory ? toggle : undefined}
+        onKeyDown={
+          hasHistory
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault()
+                  toggle()
+                }
+              }
+            : undefined
+        }
+        className={`flex items-center gap-3 p-5 ${hasHistory ? "cursor-pointer" : ""}`}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-medium text-card-foreground">{headline}</p>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">{subline}</p>
+        </div>
+        {hasHistory && (
+          <IconChevronDown
+            size={18}
+            stroke={2}
+            aria-hidden
+            className={`shrink-0 text-muted-foreground transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+          />
+        )}
       </div>
+
+      {hasHistory && expanded && (
+        <div className="border-t border-border px-5 py-1">
+          {entries.map((entry) => (
+            <div
+              key={entry.date}
+              className="flex items-center gap-3 border-b border-border/60 py-2.5 last:border-0"
+            >
+              <span className="min-w-0 flex-1 truncate text-[14px] text-primary">
+                {new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short" }).format(
+                  atNoon(entry.date),
+                )}
+              </span>
+              <span className="flex shrink-0 items-center gap-[14px] text-[13px] text-muted-foreground">
+                <span>{t("patient.entries.moodValue", { value: entry.mood })}</span>
+                <span>{t("patient.entries.sleepValue", { hours: numberFmt.format(entry.sleepHours) })}</span>
+                {/* Neutral dash, never red: a missed dose is information, not a verdict. */}
+                {entry.medicationTaken ? (
+                  <IconCheck size={15} stroke={2} aria-hidden />
+                ) : (
+                  <IconMinus size={15} stroke={2} aria-hidden />
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
