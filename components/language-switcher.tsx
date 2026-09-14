@@ -33,7 +33,11 @@ export function LanguageSwitcher({ compactOnMobile = false }: { compactOnMobile?
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      {/* Radix derives the menu id from useId(); when that id doesn't line up
+          between the server and client render, the only thing that differs is
+          this trigger's aria-controls. Scoped to this element so a real
+          mismatch anywhere else still surfaces. */}
+      <DropdownMenuTrigger asChild suppressHydrationWarning>
         <Button
           variant="outline"
           size="sm"

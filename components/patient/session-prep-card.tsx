@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { Loader2, Pencil, Save } from "lucide-react"
-import { useT } from "@/components/i18n-provider"
+import { useI18n, useT } from "@/components/i18n-provider"
 
 type SessionPrepApi = {
   sessionPrep: {
@@ -52,11 +52,15 @@ function usePrefersReducedMotion() {
   return reduced
 }
 
-function formatLastUpdated(value: string | null) {
+// The locale is passed in rather than left to `undefined`: this string is
+// rendered during SSR, where `undefined` resolves to the SERVER's locale and
+// on the client to the BROWSER's — different text on each side, i.e. a
+// hydration mismatch (and a French date inside an English UI).
+function formatLastUpdated(value: string | null, locale: string) {
   if (!value) return null
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString(locale, {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -93,6 +97,7 @@ export function SessionPrepCard({
   initialData?: SessionPrepInitialData
 }) {
   const t = useT()
+  const { locale } = useI18n()
   const prefersReducedMotion = usePrefersReducedMotion()
 
   const [isSaving, setIsSaving] = useState(false)
@@ -198,7 +203,7 @@ export function SessionPrepCard({
     if (autosave) debouncedAutosave(next)
   }
 
-  const lastUpdatedLabel = formatLastUpdated(lastUpdated)
+  const lastUpdatedLabel = formatLastUpdated(lastUpdated, locale)
   const showEdit = mode === "edit" || transitioning
   const showCompact = mode === "compact" || transitioning
 

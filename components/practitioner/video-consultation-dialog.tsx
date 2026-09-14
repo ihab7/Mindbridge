@@ -16,7 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { useT } from "@/components/i18n-provider"
+import { useI18n, useT } from "@/components/i18n-provider"
 import { toast } from "@/hooks/use-toast"
 
 type CallType = "urgent" | "scheduled"
@@ -31,6 +31,7 @@ export function VideoConsultationDialog({
   patientName: string
 }) {
   const t = useT()
+  const { locale } = useI18n()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [callType, setCallType] = useState<CallType>("urgent")
@@ -73,7 +74,7 @@ export function VideoConsultationDialog({
       }
 
       resetAndClose()
-      const dateLabel = new Intl.DateTimeFormat(undefined, {
+      const dateLabel = new Intl.DateTimeFormat(locale, {
         day: "numeric",
         month: "long",
         hour: "2-digit",

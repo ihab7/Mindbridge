@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Video, CalendarClock } from "lucide-react"
-import { useT } from "@/components/i18n-provider"
+import { useI18n, useT } from "@/components/i18n-provider"
 import { VideoConsentDialog } from "./video-consent-dialog"
 import type { PatientFacingConsultation } from "@/lib/video/data"
 
@@ -14,8 +14,8 @@ type PendingResponse = {
   upcoming: PatientFacingConsultation[]
 }
 
-function formatDateTime(iso: string) {
-  return new Intl.DateTimeFormat(undefined, {
+function formatDateTime(iso: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     day: "numeric",
     month: "long",
     hour: "2-digit",
@@ -28,6 +28,7 @@ function formatDateTime(iso: string) {
 // showing up with up to 15s of latency is an accepted tradeoff.
 export function VideoCallCard({ patientName }: { patientName: string }) {
   const t = useT()
+  const { locale } = useI18n()
   const router = useRouter()
   const [data, setData] = useState<PendingResponse | null>(null)
   const [consentOpen, setConsentOpen] = useState(false)
@@ -102,7 +103,7 @@ export function VideoCallCard({ patientName }: { patientName: string }) {
                   : t("video.card.scheduledReadyTitle", { name: prominent.practitionerName })}
               </h3>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {prominent.mode === "urgent" ? t("video.card.urgentSubtitle") : formatDateTime(prominent.scheduledAt!)}
+                {prominent.mode === "urgent" ? t("video.card.urgentSubtitle") : formatDateTime(prominent.scheduledAt!, locale)}
               </p>
             </div>
           </div>
@@ -135,7 +136,7 @@ export function VideoCallCard({ patientName }: { patientName: string }) {
             <div>
               <p className="text-sm font-medium text-foreground">{t("video.card.scheduledTitle")}</p>
               <p className="text-sm text-muted-foreground">
-                {t("video.card.scheduledWith", { date: formatDateTime(c.scheduledAt!), name: c.practitionerName })}
+                {t("video.card.scheduledWith", { date: formatDateTime(c.scheduledAt!, locale), name: c.practitionerName })}
               </p>
             </div>
           </div>
