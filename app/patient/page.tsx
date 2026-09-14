@@ -11,6 +11,7 @@ import { PractitionerFeedbackCard } from "@/components/patient/practitioner-feed
 import { DailyWellnessTasks } from "@/components/patient/daily-wellness-tasks"
 import { ProgramWidget } from "@/components/patient/program-widget"
 import { SleepNudgeBanner } from "@/components/sleep-stories/SleepNudgeBanner"
+import { VideoCallCard } from "@/components/patient/video-call-card"
 
 export default async function PatientDashboard() {
   const user = await getSession()
@@ -71,6 +72,8 @@ export default async function PatientDashboard() {
 
   return (
     <div className="flex flex-col gap-6">
+      <VideoCallCard patientName={user.name} />
+
       <div>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold text-foreground">

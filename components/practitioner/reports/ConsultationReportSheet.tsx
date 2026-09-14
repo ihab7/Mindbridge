@@ -74,6 +74,9 @@ export function ConsultationReportSheet({
       {/* ── SYNTHÈSE CLINIQUE ── */}
       <div className="report-section mt-5">
         <SectionHeader>{t("report.section.synthese")}</SectionHeader>
+        {report.inclusionComparisonLabel && (
+          <div className="mt-0.5 text-[11px] text-muted-foreground">{report.inclusionComparisonLabel}</div>
+        )}
         <table className="mt-2 w-full border-collapse text-[11px]">
           <thead>
             <tr className="border-b border-border text-start text-muted-foreground">

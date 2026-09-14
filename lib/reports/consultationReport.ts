@@ -67,6 +67,11 @@ export type ConsultationReport = {
   treatments: ReportTreatment[]
   indicators: ReportIndicator[]
   comparisonMode: ComparisonMode
+  // Temporal anchor for the indicator table's "prior" column when
+  // comparisonMode === "inclusion" — null for "previousPeriod" (the period
+  // range line already carries that anchoring) and null when there is no
+  // diagnosis date and no prior entry to anchor to.
+  inclusionComparisonLabel: string | null
   notableEvents: string[]
   programSummary: string | null
   observations: string | null
@@ -135,6 +140,33 @@ function formatDelta(key: ReportIndicator["key"], delta: number, locale: string,
   return nf(locale, 0, 1, true).format(delta) // points, no unit
 }
 
+// "il y a {n} mois/semaines" between an anchor date (diagnosis date, or the
+// patient's first-ever logged day) and the report's period end. Below ~2
+// months this reads as weeks (a "1 mois" vs "4 semaines" both being roughly
+// true is exactly the ambiguity this avoids); at/after 60 days it's months.
+function buildInclusionComparisonLabel(
+  anchorISO: string,
+  toISO: string,
+  language: ReportLanguage,
+  t: Translator,
+): string {
+  const anchorDate = new Date(anchorISO)
+  const toDate = new Date(`${toISO}T12:00:00`)
+  const days = Math.max(0, Math.round((toDate.getTime() - anchorDate.getTime()) / 86400000))
+
+  const useMonths = days >= 60
+  const n = useMonths ? Math.max(1, Math.round(days / 30)) : Math.max(1, Math.round(days / 7))
+  const unit = useMonths
+    ? t(n === 1 ? "report.unit.month" : "report.unit.months")
+    : t(n === 1 ? "report.unit.week" : "report.unit.weeks")
+
+  return t("report.period.inclusionComparison", {
+    date: formatReportDate(anchorISO, language),
+    n,
+    unit,
+  })
+}
+
 export function buildPeriodLabel(fromISO: string, toISO: string, language: ReportLanguage, t: Translator): string {
   const fmt = new Intl.DateTimeFormat(language, { day: "numeric", month: "long", year: "numeric" })
   return t("report.period.range", {
@@ -189,6 +221,19 @@ export function buildConsultationReport(input: BuildReportInput): ConsultationRe
   // Notable events = the fired flags, minus the "no flags" placeholder.
   const notableEvents = summary.flags.filter((f) => f.icon !== "circle-check").map((f) => f.text)
 
+  // Anchor for "comparaison à l'inclusion": prefer the diagnosis date; fall
+  // back to the earliest entry in the inclusion baseline (priorEntries is
+  // exactly that baseline, ascending, when comparisonMode is "inclusion").
+  // previousPeriod never gets a label — the "du {from} au {to}" line already
+  // anchors it.
+  let inclusionComparisonLabel: string | null = null
+  if (comparisonMode === "inclusion") {
+    const anchorISO = input.diagnosis?.updatedAt ?? priorEntries[0]?.created_at ?? null
+    if (anchorISO) {
+      inclusionComparisonLabel = buildInclusionComparisonLabel(anchorISO, period.to, language, t)
+    }
+  }
+
   return {
     format: "clinical",
     reference: input.reference,
@@ -212,6 +257,7 @@ export function buildConsultationReport(input: BuildReportInput): ConsultationRe
     treatments: input.treatments,
     indicators,
     comparisonMode,
+    inclusionComparisonLabel,
     notableEvents,
     programSummary: input.programSummary,
     observations: input.observations,

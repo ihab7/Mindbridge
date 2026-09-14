@@ -478,3 +478,48 @@ BEGIN
     CHECK (comparison_mode IS NULL OR comparison_mode IN ('withinWindow', 'previousPeriod', 'inclusion'));
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Video teleconsultation (meet.jit.si, no dedicated server for v1).
+-- practitioner_id/patient_id reference users(id), same convention as every
+-- other clinical table here — NOT Supabase auth.users. No RLS on this stack
+-- (see the NOTE ON ACCESS CONTROL above `practitioner_profiles`): every API
+-- route and the /consultations/[id]/live page must independently verify the
+-- session user is either practitioner_id or patient_id before returning
+-- anything, exactly like the `patients` ownership check used throughout.
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS video_consultations (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  practitioner_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  patient_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  -- Non-guessable UUID room name. meet.jit.si is
+  -- a public service — anyone with the room name
+  -- can join. Migration to a dedicated Jitsi server
+  -- will add server-side room password.
+  room_name            TEXT NOT NULL UNIQUE DEFAULT ('mb-' || gen_random_uuid()::text),
+  mode                 TEXT NOT NULL CHECK (mode IN ('urgent', 'scheduled')),
+  scheduled_at         TIMESTAMPTZ NULL, -- null for urgent, required for scheduled
+  status               TEXT NOT NULL DEFAULT 'pending'
+                         CHECK (status IN ('pending', 'active', 'completed', 'cancelled', 'no_show')),
+  practitioner_reason  TEXT NULL, -- optional, clinical note, never sent to the patient API
+  started_at           TIMESTAMPTZ NULL,
+  ended_at             TIMESTAMPTZ NULL,
+  duration_seconds     INTEGER NULL,
+  practitioner_joined  BOOLEAN NOT NULL DEFAULT false,
+  patient_joined       BOOLEAN NOT NULL DEFAULT false,
+  -- Timestamp the patient accepted the per-call consent screen. v1 pilot
+  -- only: in-app consent is the sole safeguard, no separate signed document.
+  -- consent_version lets a future stricter consent flow tell old accepted
+  -- rows apart from ones accepted under new wording.
+  patient_consent_at   TIMESTAMPTZ NULL,
+  consent_version      TEXT NULL, -- e.g. 'v1-2025-01'
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CHECK (mode = 'scheduled' OR scheduled_at IS NULL),
+  CHECK (mode = 'urgent' OR scheduled_at IS NOT NULL)
+);
+
+CREATE INDEX IF NOT EXISTS idx_video_consultations_patient
+  ON video_consultations (patient_id, status, scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_video_consultations_practitioner
+  ON video_consultations (practitioner_id, status, scheduled_at);

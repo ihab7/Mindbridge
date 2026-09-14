@@ -11,6 +11,7 @@ import { AlertList } from "@/components/practitioner/alert-list"
 import { MentalStatusBadge } from "@/components/mental-status-badge"
 import { PractitionerFeedbackForm } from "@/components/practitioner/feedback-form"
 import { ClinicalRecordCard } from "@/components/practitioner/clinical-record-card"
+import { VideoConsultationDialog } from "@/components/practitioner/video-consultation-dialog"
 import { SessionPrepViewer } from "@/components/practitioner/session-prep-viewer"
 import { ProgramProgressCard } from "@/components/practitioner/program-progress-card"
 import {
@@ -84,6 +85,7 @@ export default async function PatientDetailPage({
           <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{patient.email}</p>
         </div>
+        <VideoConsultationDialog patientId={patientId} patientName={patient.name} />
         <Link
           href={`/practitioner/messages?patient=${patientId}`}
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
