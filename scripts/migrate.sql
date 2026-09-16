@@ -523,3 +523,34 @@ CREATE INDEX IF NOT EXISTS idx_video_consultations_patient
   ON video_consultations (patient_id, status, scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_video_consultations_practitioner
   ON video_consultations (practitioner_id, status, scheduled_at);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- One journal_entries row per patient per calendar day. created_at::date
+-- can't be indexed directly — that cast reads the session TimeZone, so
+-- Postgres refuses it as non-IMMUTABLE in an index/constraint. entry_date is
+-- a real, stored column instead, computed once at write time.
+--
+-- The app server runs its DB session in GMT (confirmed via `SHOW TimeZone`),
+-- not the clinic's Africa/Tunis. Using created_at::date as-is would misfile
+-- any entry submitted between 00:00 and 00:59 Tunis time onto the previous
+-- day. AT TIME ZONE 'Africa/Tunis' is applied both in the backfill below and
+-- in the column default, so a future insert's default day and a backfilled
+-- historical day are computed the same way.
+-- ─────────────────────────────────────────────────────────────────────────
+ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS entry_date DATE;
+
+UPDATE journal_entries
+SET entry_date = (created_at AT TIME ZONE 'Africa/Tunis')::date
+WHERE entry_date IS NULL;
+
+ALTER TABLE journal_entries ALTER COLUMN entry_date SET NOT NULL;
+ALTER TABLE journal_entries ALTER COLUMN entry_date SET DEFAULT ((now() AT TIME ZONE 'Africa/Tunis')::date);
+
+DO $$
+BEGIN
+  ALTER TABLE journal_entries
+    ADD CONSTRAINT journal_entries_one_per_day UNIQUE (patient_id, entry_date);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
+ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();

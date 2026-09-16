@@ -85,6 +85,30 @@ export default async function PatientDashboard() {
   // one yields "Thu Sep 14 2026 …", not an ISO day.
   const toDateOnly = (v: unknown) => String(v)
 
+  // Today's check-in, in the clinic's own calendar day (entry_date already
+  // carries that — see migrate.sql). Preloaded the same way as SessionPrep
+  // below: the card picks compact-vs-form on first paint, no flash.
+  const todayEntryRows = (await sql`
+    SELECT id, mood, anxiety, sleep_hours::text AS sleep_hours, medication_taken,
+           side_effects, side_effects_other, challenges, achievements
+    FROM journal_entries
+    WHERE patient_id = ${user.id}
+      AND entry_date = ((now() AT TIME ZONE 'Africa/Tunis')::date)
+    LIMIT 1
+  `) as Record<string, unknown>[]
+  const todayEntry = todayEntryRows.length > 0
+    ? {
+        mood: Number(todayEntryRows[0].mood),
+        anxiety: Number(todayEntryRows[0].anxiety),
+        sleepHours: String(todayEntryRows[0].sleep_hours),
+        medicationTaken: Boolean(todayEntryRows[0].medication_taken),
+        sideEffects: Array.isArray(todayEntryRows[0].side_effects) ? (todayEntryRows[0].side_effects as string[]) : [],
+        sideEffectsOther: todayEntryRows[0].side_effects_other == null ? "" : String(todayEntryRows[0].side_effects_other),
+        challenges: String(todayEntryRows[0].challenges ?? ""),
+        achievements: String(todayEntryRows[0].achievements ?? ""),
+      }
+    : null
+
   // Preloaded so SessionPrepCard can pick its initial edit/compact state on
   // first paint — no flash of the edit form before jumping to compact.
   const sessionPrepRows = (await sql`
@@ -137,7 +161,7 @@ export default async function PatientDashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="order-1">
           <div id="journal-form" className="flex flex-col gap-6 scroll-mt-20">
-            <JournalForm />
+            <JournalForm todayEntry={todayEntry} />
             <SessionPrepCard initialData={sessionPrepInitialData} />
           </div>
         </div>

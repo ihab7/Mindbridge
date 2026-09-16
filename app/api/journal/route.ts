@@ -105,6 +105,11 @@ export async function POST(request: Request) {
 
     const schema = await hasNewSideEffectsColumns(sql)
 
+    // One row per (patient_id, entry_date) — entry_date defaults to today in
+    // Africa/Tunis (see migrate.sql). A second submission the same day
+    // updates that row instead of creating a sibling; created_at is
+    // deliberately absent from the SET clause so the first save of the day
+    // keeps its original timestamp.
     const result = schema.hasArraySideEffects && schema.hasSideEffectsOther
       ? await sql`
           INSERT INTO journal_entries (
@@ -129,6 +134,16 @@ export async function POST(request: Request) {
             ${challenges || ""},
             ${achievements || ""}
           )
+          ON CONFLICT (patient_id, entry_date) DO UPDATE SET
+            mood = EXCLUDED.mood,
+            anxiety = EXCLUDED.anxiety,
+            sleep_hours = EXCLUDED.sleep_hours,
+            medication_taken = EXCLUDED.medication_taken,
+            side_effects = EXCLUDED.side_effects,
+            side_effects_other = EXCLUDED.side_effects_other,
+            challenges = EXCLUDED.challenges,
+            achievements = EXCLUDED.achievements,
+            updated_at = NOW()
           RETURNING *
         `
       : await sql`
@@ -152,6 +167,15 @@ export async function POST(request: Request) {
             ${challenges || ""},
             ${achievements || ""}
           )
+          ON CONFLICT (patient_id, entry_date) DO UPDATE SET
+            mood = EXCLUDED.mood,
+            anxiety = EXCLUDED.anxiety,
+            sleep_hours = EXCLUDED.sleep_hours,
+            medication_taken = EXCLUDED.medication_taken,
+            side_effects = EXCLUDED.side_effects,
+            challenges = EXCLUDED.challenges,
+            achievements = EXCLUDED.achievements,
+            updated_at = NOW()
           RETURNING *
         `
 
