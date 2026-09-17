@@ -4,18 +4,26 @@ import { NextResponse } from "next/server"
 import { getSql } from "@/lib/db"
 import { createSession, getSession } from "@/lib/auth"
 import bcrypt from "bcryptjs"
+import { validateCabinetContact } from "@/lib/directory"
 
 // GET: public directory listing. Patients browse for free -- no auth
-// required -- but contact details (phone/email/website/address) are
-// stripped server-side unless the caller has a session, so logged-out
-// visitors can never read them off the network response.
+// required. The cabinet's phone and email are public for everyone, so a
+// patient can contact the cabinet before creating an account (they are the
+// CABINET contact, never the login email -- see the column comments in
+// migrate.sql). Address and website are still stripped server-side for
+// logged-out visitors.
+//
+// The internal account id (user_id) is never returned, to anyone. The only
+// client need is "does this listing belong to a MindBridge practitioner
+// account?" (the "Sign up with this practitioner" shortcut), answered by the
+// server-computed has_account boolean.
 export async function GET() {
   const sql = getSql()
   const user = await getSession()
 
   const rows = await sql`
     SELECT
-      id, user_id, full_name, specialty, bio, address, city, latitude, longitude,
+      id, (user_id IS NOT NULL) AS has_account, full_name, specialty, bio, address, city, latitude, longitude,
       phone, email, website, languages, experience_years, tags, avatar_url,
       opening_hours, plan, is_verified
     FROM practitioners
@@ -28,8 +36,6 @@ export async function GET() {
     const base = { ...row }
     if (!user) {
       base.address = null
-      base.phone = null
-      base.email = null
       base.website = null
     }
     return base
@@ -63,9 +69,10 @@ export async function POST(request: Request) {
       city = "",
       latitude = null,
       longitude = null,
-      phone = "",
       email = "",
       password = "",
+      cabinet_phone = "",
+      cabinet_email = "",
       website = "",
       languages = [],
       experience_years = null,
@@ -88,6 +95,16 @@ export async function POST(request: Request) {
     if (!["basic", "premium"].includes(plan)) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 })
     }
+
+    // Public cabinet contact → practitioners.phone / .email (shared rule, see
+    // validateCabinetContact). `email` above is the LOGIN email: it goes to
+    // users.email only and is never copied onto the public listing.
+    const contact = validateCabinetContact(cabinet_phone, cabinet_email)
+    if (!contact.ok) {
+      return NextResponse.json({ error: "Invalid cabinet contact", errorCode: contact.errorCode }, { status: 400 })
+    }
+    const cabinetPhone = contact.phone
+    const cabinetEmail = contact.email
 
     // The map pin is optional, but when present it must be a real pair of
     // coordinates -- a half-set or out-of-range pair would place the cabinet
@@ -133,7 +150,7 @@ export async function POST(request: Request) {
         ) VALUES (
           (SELECT id FROM new_user),
           ${full_name}, ${specialty}, ${bio}, ${address}, ${city}, ${latValue}, ${lngValue},
-          ${phone}, ${email}, ${website}, ${languages}, ${experience_years}, ${tags}, ${JSON.stringify(opening_hours)}, ${plan},
+          ${cabinetPhone}, ${cabinetEmail}, ${website}, ${languages}, ${experience_years}, ${tags}, ${JSON.stringify(opening_hours)}, ${plan},
           false, true, NOW() + make_interval(days => ${TRIAL_DAYS})
         )
         RETURNING id, user_id, plan

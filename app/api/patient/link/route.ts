@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}))
     const result = await redeemCodeForPatient(getSql(), user.id, body?.code)
 
-    if (result.ok) return NextResponse.json({ practitionerName: result.practitionerName })
+    if (result.ok) return NextResponse.json({ practitioner: result.practitioner })
     if (result.error === "already_linked") {
       return NextResponse.json({ errorCode: result.error, practitionerName: result.practitionerName }, { status: 409 })
     }

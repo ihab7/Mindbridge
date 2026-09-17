@@ -12,8 +12,12 @@ import { LocaleAutoDetect } from "@/components/locale-auto-detect"
 import { useT } from "@/components/i18n-provider"
 import { CodeInput } from "@/components/linking/code-input"
 import { linkingErrorMessage } from "@/components/linking/linking-error"
+import { LinkedConfirmation, type LinkedPractitioner } from "@/components/linking/linked-confirmation"
 
-export function RegisterForm() {
+/** Welcome copy only — never sent to the API, never used to link. */
+export type PractitionerContext = { name: string; specialty: string }
+
+export function RegisterForm({ practitionerContext = null }: { practitionerContext?: PractitionerContext | null }) {
   const router = useRouter()
   const t = useT()
   const [name, setName] = useState("")
@@ -24,7 +28,8 @@ export function RegisterForm() {
   // Two steps: account details, then "do you have a code from your
   // practitioner?". The account is only created on the second step, so a
   // wrong code never leaves a half-made account behind.
-  const [step, setStep] = useState<"details" | "code">("details")
+  const [step, setStep] = useState<"details" | "code" | "linked">("details")
+  const [linkedTo, setLinkedTo] = useState<LinkedPractitioner | null>(null)
   const [code, setCode] = useState("")
   const [codeError, setCodeError] = useState("")
   const [pending, setPending] = useState<"code" | "skip" | null>(null)
@@ -57,6 +62,15 @@ export function RegisterForm() {
           setError(data.error || t("auth.errors.registrationFailed"))
           setStep("details")
         }
+        setLoading(false)
+        setPending(null)
+        return
+      }
+      if (data.practitioner) {
+        // Linked by the code: say who to before the dashboard. The session
+        // cookie is already set, so "Continue" is a plain navigation.
+        setLinkedTo(data.practitioner)
+        setStep("linked")
         setLoading(false)
         setPending(null)
         return
@@ -96,7 +110,16 @@ export function RegisterForm() {
             </div>
           )}
 
-          {step === "code" ? (
+          {step === "linked" && linkedTo ? (
+            <LinkedConfirmation
+              practitioner={linkedTo}
+              pending={loading}
+              onContinue={() => {
+                setLoading(true)
+                window.location.href = "/patient"
+              }}
+            />
+          ) : step === "code" ? (
             <form
               onSubmit={(e) => {
                 e.preventDefault()
@@ -106,8 +129,15 @@ export function RegisterForm() {
             >
               <div>
                 <h2 className="text-lg font-semibold text-foreground">{t("auth.register.code.title")}</h2>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{t("auth.register.code.subtitle")}</p>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  {practitionerContext
+                    ? t("patients.code.contextHint", { name: practitionerContext.name })
+                    : t("auth.register.code.subtitle")}
+                </p>
               </div>
+              <p className="rounded-lg bg-primary/[0.06] px-3 py-2.5 text-sm leading-relaxed text-foreground">
+                {t("linking.code.explainer")}
+              </p>
               <div>
                 <CodeInput
                   id="linking-code"
@@ -157,6 +187,11 @@ export function RegisterForm() {
             </form>
           ) : (
           <form onSubmit={handleDetailsSubmit} className="flex flex-col gap-4">
+            {practitionerContext && (
+              <p className="rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2.5 text-sm leading-relaxed text-foreground">
+                {t("patients.register.contextBanner", practitionerContext)}
+              </p>
+            )}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
                 {t("auth.register.roleLabel")}

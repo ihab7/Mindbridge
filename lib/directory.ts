@@ -6,7 +6,8 @@ export type OpeningHours = Record<string, string>
 
 export type Practitioner = {
   id: string
-  user_id: number | null
+  /** Listing belongs to a MindBridge practitioner account (who can issue linking codes). */
+  has_account: boolean
   full_name: string
   specialty: string
   bio: string
@@ -24,6 +25,42 @@ export type Practitioner = {
   opening_hours: OpeningHours
   plan: "basic" | "premium"
   is_verified: boolean
+}
+
+/**
+ * Name without a leading "Dr"/"Dr." — for copy that already says "Dr. {name}"
+ * ("Dr. Melek Hajri" → "Melek Hajri", "DR.Harbaoui" → "Harbaoui"), so it never
+ * reads "Dr. Dr. …".
+ */
+export function withoutDoctorPrefix(name: string): string {
+  return name.replace(/^s*dr.?s*/i, "").trim() || name
+}
+
+export type CabinetContactErrorCode = "cabinet_contact_required" | "invalid_cabinet_phone" | "invalid_cabinet_email"
+
+/**
+ * Public cabinet contact of a directory listing (practitioners.phone / .email).
+ * At least one is required — a published listing nobody can reach breaks the
+ * patient path (contact the cabinet → receive a linking code). Shared by /join
+ * (browser + API) and the Settings listing editor so the rule never diverges.
+ * Error codes map to i18n keys practitioner.cabinetContact.errors.*.
+ */
+export function validateCabinetContact(
+  phone: unknown,
+  email: unknown,
+): { ok: true; phone: string; email: string } | { ok: false; errorCode: CabinetContactErrorCode } {
+  const p = typeof phone === "string" ? phone.trim() : ""
+  const e = typeof email === "string" ? email.trim() : ""
+  if (!p && !e) return { ok: false, errorCode: "cabinet_contact_required" }
+  if (p && (p.length > 50 || !/^[+()\d\s.-]{6,}$/.test(p))) return { ok: false, errorCode: "invalid_cabinet_phone" }
+  if (e && (e.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))) return { ok: false, errorCode: "invalid_cabinet_email" }
+  return { ok: true, phone: p, email: e }
+}
+
+export const CABINET_CONTACT_ERROR_KEYS: Record<CabinetContactErrorCode, string> = {
+  cabinet_contact_required: "practitioner.cabinetContact.errors.required",
+  invalid_cabinet_phone: "practitioner.cabinetContact.errors.invalidPhone",
+  invalid_cabinet_email: "practitioner.cabinetContact.errors.invalidEmail",
 }
 
 export const SPECIALTY_TAGS = [

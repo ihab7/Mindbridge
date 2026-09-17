@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       }
       await createSession(linked.user.id);
       return NextResponse.json(
-        { user: linked.user, practitionerName: linked.practitionerName },
+        { user: linked.user, practitioner: linked.practitioner },
         { status: 201 },
       );
     }

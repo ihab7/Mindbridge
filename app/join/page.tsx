@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useRef, useState } from "react"
 import Link from "next/link"
 import { Activity, Loader2, MapPin } from "lucide-react"
-import { SPECIALTY_TAGS, LANGUAGE_OPTIONS, WEEKDAYS } from "@/lib/directory"
+import { SPECIALTY_TAGS, LANGUAGE_OPTIONS, WEEKDAYS, validateCabinetContact, CABINET_CONTACT_ERROR_KEYS } from "@/lib/directory"
+import { useT } from "@/components/i18n-provider"
 import { LocationPickerDialog, type PickedLocation } from "@/components/psychiatrist/location-picker-dialog"
 
 type PlanId = "basic" | "premium"
@@ -38,12 +39,20 @@ const PLANS: Record<PlanId, { name: string; price: string; features: [string, bo
 }
 
 export default function PractitionerRegisterPage() {
+  // /join is otherwise English-only; the cabinet-contact errors are translated
+  // because they can block a real practitioner's sign-up.
+  const t = useT()
   const [plan, setPlan] = useState<PlanId>("basic")
   const [fullName, setFullName] = useState("")
   const [specialty, setSpecialty] = useState("")
   const [experienceYears, setExperienceYears] = useState("")
-  const [phone, setPhone] = useState("")
+  // Login email: authentication only, never copied to the public listing.
   const [email, setEmail] = useState("")
+  // Public cabinet contact (practitioners.phone / .email). At least one is required.
+  const [cabinetPhone, setCabinetPhone] = useState("")
+  const [cabinetEmail, setCabinetEmail] = useState("")
+  const [contactError, setContactError] = useState("")
+  const cabinetPhoneRef = useRef<HTMLInputElement>(null)
   const [password, setPassword] = useState("")
   const [clinicName, setClinicName] = useState("")
   const [address, setAddress] = useState("")
@@ -92,6 +101,7 @@ export default function PractitionerRegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+    setContactError("")
 
     if (!fullName || !specialty || !city || !address || !email || !password) {
       setError("Please fill in your name, specialty, city, address, email and password.")
@@ -99,6 +109,14 @@ export default function PractitionerRegisterPage() {
     }
     if (password.length < 8) {
       setError("Password must be at least 8 characters.")
+      return
+    }
+    // Same rule as the server (validateCabinetContact): a listing nobody can
+    // reach breaks the whole patient path (call the cabinet → receive a code).
+    const contact = validateCabinetContact(cabinetPhone, cabinetEmail)
+    if (!contact.ok) {
+      setContactError(t(CABINET_CONTACT_ERROR_KEYS[contact.errorCode]))
+      cabinetPhoneRef.current?.focus()
       return
     }
 
@@ -121,9 +139,10 @@ export default function PractitionerRegisterPage() {
           city,
           latitude: coords?.lat ?? null,
           longitude: coords?.lng ?? null,
-          phone,
           email,
           password,
+          cabinet_phone: cabinetPhone.trim(),
+          cabinet_email: cabinetEmail.trim(),
           languages,
           experience_years: experienceYears ? Number(experienceYears) : null,
           tags,
@@ -132,6 +151,13 @@ export default function PractitionerRegisterPage() {
         }),
       })
       const data = await res.json()
+      if (!res.ok && data.errorCode && data.errorCode in CABINET_CONTACT_ERROR_KEYS) {
+        // Server-side rejection of the cabinet contact: show it next to the fields.
+        setContactError(t(CABINET_CONTACT_ERROR_KEYS[data.errorCode as keyof typeof CABINET_CONTACT_ERROR_KEYS]))
+        cabinetPhoneRef.current?.focus()
+        setSubmitting(false)
+        return
+      }
       if (!res.ok) throw new Error(data.error ?? "Registration failed")
       // Account + listing created and the session cookie is set: go straight
       // to the dashboard, as /register does for a patient. Full navigation so
@@ -218,6 +244,12 @@ export default function PractitionerRegisterPage() {
           ✨ Both plans include a 30-day free trial. No credit card required to start.
         </p>
 
+        {/* TODO: le message d'erreur général du formulaire
+            s'affiche hors du viewport sur les formulaires
+            longs (ex: /join). Envisager un scroll-into-view
+            automatique ou un repositionnement près du champ
+            fautif, comme fait ponctuellement ici pour les
+            contacts du cabinet. */}
         {error && (
           <div className="mb-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>
         )}
@@ -234,10 +266,7 @@ export default function PractitionerRegisterPage() {
             <Field label="Years of experience">
               <input type="number" min={0} value={experienceYears} onChange={(e) => setExperienceYears(e.target.value)} className={inputClass} />
             </Field>
-            <Field label="Phone number">
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} placeholder="+216 ..." />
-            </Field>
-            <Field label="Email address" required>
+            <Field label="Login email" required>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputClass} />
             </Field>
             <Field label="Password" required>
@@ -253,6 +282,35 @@ export default function PractitionerRegisterPage() {
             <Field label="City" required>
               <input value={city} onChange={(e) => { setCity(e.target.value); setCityFromMap(false) }} required className={inputClass} placeholder="Tunis" />
             </Field>
+            <Field label="Cabinet phone">
+              <input
+                ref={cabinetPhoneRef}
+                type="tel"
+                value={cabinetPhone}
+                onChange={(e) => { setCabinetPhone(e.target.value); setContactError("") }}
+                autoComplete="tel"
+                maxLength={50}
+                aria-invalid={contactError ? true : undefined}
+                aria-describedby="cabinet-contact-hint"
+                className={inputClass}
+                placeholder="+216 ..."
+              />
+            </Field>
+            <Field label="Cabinet email">
+              <input
+                type="email"
+                value={cabinetEmail}
+                onChange={(e) => { setCabinetEmail(e.target.value); setContactError("") }}
+                maxLength={255}
+                aria-invalid={contactError ? true : undefined}
+                aria-describedby="cabinet-contact-hint"
+                className={inputClass}
+                placeholder="contact@your-cabinet.tn"
+              />
+            </Field>
+            <p id="cabinet-contact-hint" role={contactError ? "alert" : undefined} className={`-mt-2 text-xs ${contactError ? "text-destructive" : "text-muted-foreground"}`}>
+              {contactError || "Shown publicly on your directory listing so patients can contact you. At least one is required."}
+            </p>
             <Field label="Full address" required>
               <input value={address} onChange={(e) => { setAddress(e.target.value); setAddressFromMap(false) }} required className={inputClass} />
             </Field>

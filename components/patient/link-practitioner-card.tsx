@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Link2, Loader2 } from "lucide-react"
 import { useI18n, useT } from "@/components/i18n-provider"
 import { CodeInput } from "@/components/linking/code-input"
+import { LinkedConfirmation, type LinkedPractitioner } from "@/components/linking/linked-confirmation"
 import { linkingErrorMessage } from "@/components/linking/linking-error"
 import { directionForLocale, isLocale } from "@/i18n/routing"
 
@@ -21,6 +22,8 @@ export function LinkPractitionerCard() {
   const [code, setCode] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [linkedTo, setLinkedTo] = useState<LinkedPractitioner | null>(null)
+  const [continuing, setContinuing] = useState(false)
   const rtl = directionForLocale(isLocale(locale) ? locale : "fr") === "rtl"
 
   async function handleSubmit(e: React.FormEvent) {
@@ -40,12 +43,29 @@ export function LinkPractitionerCard() {
         setLoading(false)
         return
       }
-      // Linked: the server page now renders the full dashboard.
-      router.refresh()
+      // Linked: confirm who to first. "Continue" re-renders the server page,
+      // which now shows the full dashboard.
+      setLinkedTo(data.practitioner)
+      setLoading(false)
     } catch {
       setError(linkingErrorMessage(t, "generic"))
       setLoading(false)
     }
+  }
+
+  if (linkedTo) {
+    return (
+      <div className="mx-auto w-full max-w-lg rounded-xl border border-border bg-card p-6 sm:p-8">
+        <LinkedConfirmation
+          practitioner={linkedTo}
+          pending={continuing}
+          onContinue={() => {
+            setContinuing(true)
+            router.refresh()
+          }}
+        />
+      </div>
+    )
   }
 
   return (
@@ -55,8 +75,11 @@ export function LinkPractitionerCard() {
       </span>
       <h2 className="mt-4 text-xl font-semibold text-foreground">{t("patient.unlinked.title")}</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t("patient.unlinked.body")}</p>
+      <p className="mt-4 rounded-lg bg-primary/[0.06] px-3 py-2.5 text-sm leading-relaxed text-foreground">
+        {t("linking.code.explainer")}
+      </p>
 
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-start">
+      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start">
         <div className="flex-1">
           <CodeInput
             id="dashboard-linking-code"

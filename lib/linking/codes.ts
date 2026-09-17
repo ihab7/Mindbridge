@@ -153,8 +153,34 @@ export async function markLinksSeen(sql: Sql, practitionerId: number, patientId?
 // compte, verrouillage temporaire après N
 // tentatives).
 
+/** What the patient sees on the "you are now followed by…" confirmation. */
+export type PractitionerSummary = { name: string; specialty: string | null; cabinet: string | null }
+
+/**
+ * Specialty and cabinet come from the practitioner's report profile
+ * (Settings → practitioner_profiles), which they maintain themselves; the
+ * directory listing's specialty is the fallback. The listing has no separate
+ * cabinet field (/join prefixes the clinic name into `address`), so a
+ * practitioner who never filled Settings shows no cabinet.
+ */
+export async function getPractitionerSummary(sql: Sql, practitionerId: number): Promise<PractitionerSummary> {
+  const rows = (await sql`
+    SELECT u.name,
+           COALESCE(NULLIF(TRIM(pp.specialty), ''), NULLIF(TRIM(listing.specialty), '')) AS specialty,
+           NULLIF(TRIM(pp.cabinet_name), '') AS cabinet
+    FROM users u
+    LEFT JOIN practitioner_profiles pp ON pp.user_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT specialty FROM practitioners WHERE user_id = u.id ORDER BY created_at DESC LIMIT 1
+    ) listing ON true
+    WHERE u.id = ${practitionerId}
+  `) as { name: string; specialty: string | null; cabinet: string | null }[]
+  const r = rows[0]
+  return { name: r?.name ?? "", specialty: r?.specialty ?? null, cabinet: r?.cabinet ?? null }
+}
+
 export type RedeemResult =
-  | { ok: true; practitionerName: string }
+  | { ok: true; practitioner: PractitionerSummary }
   | { ok: false; error: "code_format" | "code_invalid" }
   | { ok: false; error: "already_linked"; practitionerName: string }
 
@@ -187,11 +213,10 @@ export async function redeemCodeForPatient(sql: Sql, patientId: number, rawCode:
         SELECT ${patientId}, practitioner_id FROM claimed
         RETURNING practitioner_id
       )
-      SELECT u.name AS practitioner_name
-      FROM link JOIN users u ON u.id = link.practitioner_id
-    `) as { practitioner_name: string }[]
+      SELECT practitioner_id FROM link
+    `) as { practitioner_id: number }[]
     if (rows.length === 0) return { ok: false, error: "code_invalid" }
-    return { ok: true, practitionerName: rows[0].practitioner_name }
+    return { ok: true, practitioner: await getPractitionerSummary(sql, Number(rows[0].practitioner_id)) }
   } catch (err) {
     // Linked by a concurrent request between the check above and the insert:
     // the whole statement (code claim included) was rolled back.
@@ -204,7 +229,7 @@ export async function redeemCodeForPatient(sql: Sql, patientId: number, rawCode:
 }
 
 export type CreatePatientResult =
-  | { ok: true; user: { id: number; role: "patient"; name: string; email: string }; practitionerName: string }
+  | { ok: true; user: { id: number; role: "patient"; name: string; email: string }; practitioner: PractitionerSummary }
   | { ok: false; error: "code_format" | "code_invalid" }
 
 /**
@@ -244,13 +269,16 @@ export async function createPatientWithCode(
       SELECT new_user.id, claimed.practitioner_id FROM new_user CROSS JOIN claimed
       RETURNING practitioner_id
     )
-    SELECT new_user.id, new_user.role, new_user.name, new_user.email, pu.name AS practitioner_name
+    SELECT new_user.id, new_user.role, new_user.name, new_user.email, link.practitioner_id
     FROM new_user
     JOIN link ON true
-    JOIN users pu ON pu.id = link.practitioner_id
-  `) as { id: number; role: "patient"; name: string; email: string; practitioner_name: string }[]
+  `) as { id: number; role: "patient"; name: string; email: string; practitioner_id: number }[]
 
   if (rows.length === 0) return { ok: false, error: "code_invalid" }
   const r = rows[0]
-  return { ok: true, user: { id: Number(r.id), role: "patient", name: r.name, email: r.email }, practitionerName: r.practitioner_name }
+  return {
+    ok: true,
+    user: { id: Number(r.id), role: "patient", name: r.name, email: r.email },
+    practitioner: await getPractitionerSummary(sql, Number(r.practitioner_id)),
+  }
 }

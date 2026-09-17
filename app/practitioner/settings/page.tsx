@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { getServerI18n } from "@/lib/server-i18n"
 import { logDbError } from "@/lib/db-errors"
 import { PractitionerProfileForm, type ProfileValues } from "@/components/practitioner/reports/PractitionerProfileForm"
+import { DirectoryListingContactForm } from "@/components/practitioner/directory-listing-contact-form"
 
 export default async function PractitionerSettingsPage() {
   const user = await getSession()
@@ -37,6 +38,22 @@ export default async function PractitionerSettingsPage() {
     report_footer_note: (p?.report_footer_note as string) ?? "",
   }
 
+  // Public directory listing contact (practitioners.phone / .email) — a
+  // different table and audience from the report letterhead above. null when
+  // this account has no listing (e.g. the demo practitioner).
+  let listing: { phone: string; email: string } | null = null
+  try {
+    const listingRows = (await sql`
+      SELECT phone, email FROM practitioners
+      WHERE user_id = ${user.id}
+      ORDER BY created_at DESC
+      LIMIT 1
+    `) as { phone: string | null; email: string | null }[]
+    if (listingRows.length > 0) listing = { phone: listingRows[0].phone ?? "", email: listingRows[0].email ?? "" }
+  } catch (err) {
+    logDbError(err, "practitioner-settings:listing")
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-2">
       <div>
@@ -44,6 +61,7 @@ export default async function PractitionerSettingsPage() {
         <p className="mt-1 text-muted-foreground">{t("settings.profile.subtitle")}</p>
       </div>
       <PractitionerProfileForm initial={initial} />
+      <DirectoryListingContactForm initial={listing} />
     </div>
   )
 }

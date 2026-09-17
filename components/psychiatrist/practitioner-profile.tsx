@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { CheckCircle2, Lock, MapPin, Phone, Share2, Globe, Mail, Users } from "lucide-react"
+import { CheckCircle2, MapPin, Share2, Globe, Users } from "lucide-react"
 import type { PractitionerWithDistance } from "@/hooks/use-practitioners"
 import { useT } from "@/components/i18n-provider"
 
@@ -37,6 +37,11 @@ export function PractitionerProfile({
   }
 
   const isPremium = practitioner.plan === "premium"
+  // Shortcut to patient sign-up, shown only when the listing belongs to a
+  // MindBridge practitioner account — the only practitioners who can hand out
+  // a linking code. Pure navigation: the ?practitioner param only adds welcome
+  // text on /register; the link itself is still made by the code alone.
+  const signupHref = practitioner.has_account ? `/register?practitioner=${practitioner.id}` : null
   const tagline = practitioner.bio ? practitioner.bio.split(".")[0].trim() : ""
 
   async function handleShare() {
@@ -98,51 +103,13 @@ export function PractitionerProfile({
       {/* Contact block */}
       <div>
         <SectionLabel icon="📞" label="Contact" />
-        {!isLoggedIn ? (
-          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-primary/40 bg-gradient-to-br from-primary/[0.08] to-primary/[0.03] p-6 text-center">
-            <span className="text-3xl">🔒</span>
-            <p className="text-sm font-semibold text-foreground">Contact info & booking</p>
-            <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
-              Create a free MindBridge account to view contact details and book a consultation — it&apos;s completely
-              free.
-            </p>
-            <button
-              type="button"
-              onClick={onLoginRequest}
-              className="mt-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Sign up free →
-            </button>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Already have an account?{" "}
-              <Link href="/login" className="font-medium text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 p-4">
-            {practitioner.phone && (
-              <a href={`tel:${practitioner.phone}`} className="flex items-center gap-2 text-sm text-foreground hover:text-primary">
-                <Phone className="h-4 w-4 text-primary" /> {practitioner.phone}
-              </a>
-            )}
-            {practitioner.address && (
-              <div className="flex items-start gap-2 text-sm text-foreground">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {practitioner.address}
-              </div>
-            )}
-            {practitioner.website && (
-              <a
-                href={practitioner.website}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 text-sm text-foreground hover:text-primary"
-              >
-                <Globe className="h-4 w-4 text-primary" /> {practitioner.website}
-              </a>
-            )}
-            <div className="mt-1 flex flex-wrap gap-2">
+        {/* Cabinet phone and email are public (no account needed): a patient
+            contacts the cabinet first and receives a linking code there.
+            Address and website only arrive for signed-in viewers -- the API
+            strips them otherwise. */}
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/30 p-4">
+          {(practitioner.phone || signupHref) && (
+            <div className="flex flex-wrap gap-2">
               {practitioner.phone && (
                 <a
                   href={`tel:${practitioner.phone}`}
@@ -154,17 +121,47 @@ export function PractitionerProfile({
                   📞 {t("finder.profile.call")}
                 </a>
               )}
-              {practitioner.email && (
-                <a
-                  href={`mailto:${practitioner.email}`}
-                  className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              {signupHref && (
+                <Link
+                  href={signupHref}
+                  className="rounded-lg border border-primary/40 bg-background px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
                 >
-                  <Mail className="h-4 w-4" /> Email
-                </a>
+                  {t("patients.directory.signupWithPractitioner")}
+                </Link>
               )}
             </div>
-          </div>
-        )}
+          )}
+          {/* The "you will receive a code" part only holds for listings backed
+              by a MindBridge account -- the only practitioners who can issue codes. */}
+          {!isLoggedIn && signupHref && (practitioner.phone || practitioner.email) && (
+            <p className="text-xs leading-relaxed text-muted-foreground">{t("patients.directory.contactOrientation")}</p>
+          )}
+          {practitioner.email && (
+            <a href={`mailto:${practitioner.email}`} className="flex items-center gap-2 break-all text-sm text-foreground hover:text-primary">
+              <span aria-hidden="true">📧</span> {practitioner.email}
+            </a>
+          )}
+          {practitioner.phone && (
+            <a href={`tel:${practitioner.phone}`} className="flex items-center gap-2 text-sm text-foreground hover:text-primary">
+              <span aria-hidden="true">📞</span> <span dir="ltr">{practitioner.phone}</span>
+            </a>
+          )}
+          {practitioner.address && (
+            <div className="flex items-start gap-2 text-sm text-foreground">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {practitioner.address}
+            </div>
+          )}
+          {practitioner.website && (
+            <a
+              href={practitioner.website}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 text-sm text-foreground hover:text-primary"
+            >
+              <Globe className="h-4 w-4 text-primary" /> {practitioner.website}
+            </a>
+          )}
+        </div>
       </div>
 
       {/* About */}

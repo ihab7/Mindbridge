@@ -585,3 +585,17 @@ CREATE INDEX IF NOT EXISTS idx_patient_linking_codes_unused
   ON patient_linking_codes (code) WHERE used_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_patient_linking_codes_practitioner
   ON patient_linking_codes (practitioner_id, created_at DESC);
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Directory listing contact = the CABINET's public phone and email.
+-- practitioners.phone / practitioners.email already hold exactly that (the
+-- seed listings store cabinet numbers and addresses there, and only the
+-- directory reads them), so they are reused rather than duplicated as
+-- cabinet_phone / cabinet_email. Never the practitioner's login email: that
+-- lives only in users.email. Also distinct from practitioner_profiles.phone /
+-- .email, which are the letterhead printed on clinical reports.
+-- COMMENT ON is idempotent: safe to re-run. No semicolons inside the comment
+-- strings: scripts/setup-db.mjs splits statements on every semicolon.
+-- ─────────────────────────────────────────────────────────────────────────
+COMMENT ON COLUMN practitioners.phone IS 'Cabinet phone shown publicly on the directory listing. Not a personal number and never login data from users.';
+COMMENT ON COLUMN practitioners.email IS 'Cabinet contact email shown publicly on the directory listing. Must never be a copy of the account login email (users.email).';
