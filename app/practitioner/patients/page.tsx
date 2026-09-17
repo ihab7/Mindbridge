@@ -10,6 +10,9 @@ import {
   getCriticalMoodPatientIds,
   getActiveTrackingPatientIds,
 } from "@/lib/practitioner/dashboardMetrics"
+import { listRecentCodes, listUnseenLinks } from "@/lib/linking/codes"
+import { LinkingCodePanel } from "@/components/practitioner/linking-code-panel"
+import { NewLinksNotice } from "@/components/practitioner/new-links-notice"
 
 type FilterKind = "alerts" | "critical" | "active"
 const FILTER_KINDS: FilterKind[] = ["alerts", "critical", "active"]
@@ -46,6 +49,13 @@ export default async function PatientsListPage({
     ORDER BY u.name ASC
   `
 
+  // Linking codes: the generator's recent-codes table, and patients who
+  // redeemed a code since the practitioner last dismissed the notice.
+  const [recentCodes, unseenLinks] = await Promise.all([
+    listRecentCodes(sql, user.id),
+    listUnseenLinks(sql, user.id),
+  ])
+
   // Filter, when present, matches the EXACT SAME id-producing functions the
   // dashboard cards use to compute their counts — a card showing "2" and
   // this filtered list can never diverge, since it's the same query.
@@ -76,6 +86,10 @@ export default async function PatientsListPage({
           {patients.length} patient{patients.length !== 1 ? "s" : ""} in your care
         </p>
       </div>
+
+      <NewLinksNotice links={unseenLinks} />
+
+      <LinkingCodePanel initialRecent={recentCodes} />
 
       {filter && filterLabel && (
         <div className="flex w-fit items-center gap-2 rounded-full border border-border bg-muted px-3 py-1.5 text-[13px]">

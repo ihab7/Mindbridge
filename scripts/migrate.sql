@@ -550,7 +550,38 @@ DO $$
 BEGIN
   ALTER TABLE journal_entries
     ADD CONSTRAINT journal_entries_one_per_day UNIQUE (patient_id, entry_date);
-EXCEPTION WHEN duplicate_object THEN NULL;
+-- Re-runs raise duplicate_table (42P07, the backing index), not duplicate_object.
+EXCEPTION WHEN duplicate_object OR duplicate_table THEN NULL;
 END $$;
 
 ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Patient ↔ practitioner linking codes. The ONLY way a patient becomes
+-- attached to a practitioner (a `patients` row): the practitioner generates a
+-- one-time code, hands it over (in the office, or by SMS/email after a first
+-- call), and the patient enters it at sign-up or from their dashboard.
+-- Patients can never attach themselves from the directory.
+--
+-- Codes: 6 chars from an alphabet without 0/O/1/I/L, valid 48 h, single use.
+-- Expired rows are never deleted -- `expires_at > NOW()` in the redeem query is
+-- what makes them unusable, and they stay as history.
+-- `practitioner_seen_at` drives the "new patient linked" notice on the
+-- practitioner's Patients page (NULL = used but not yet acknowledged).
+-- ON DELETE: removing a practitioner account removes their codes; removing a
+-- patient account keeps the code row as history with the patient cleared.
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS patient_linking_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT NOT NULL UNIQUE CHECK (code ~ '^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$'),
+  practitioner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  used_by_patient_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  practitioner_seen_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_patient_linking_codes_unused
+  ON patient_linking_codes (code) WHERE used_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_patient_linking_codes_practitioner
+  ON patient_linking_codes (practitioner_id, created_at DESC);

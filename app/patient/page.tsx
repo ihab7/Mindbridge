@@ -12,6 +12,7 @@ import { DailyWellnessTasks } from "@/components/patient/daily-wellness-tasks"
 import { ProgramWidget } from "@/components/patient/program-widget"
 import { SleepNudgeBanner } from "@/components/sleep-stories/SleepNudgeBanner"
 import { VideoCallCard } from "@/components/patient/video-call-card"
+import { LinkPractitionerCard } from "@/components/patient/link-practitioner-card"
 
 export default async function PatientDashboard() {
   const user = await getSession()
@@ -20,6 +21,20 @@ export default async function PatientDashboard() {
   const { t } = await getServerI18n()
 
   const sql = getSql()
+
+  // Not linked to a practitioner yet (signed up without a code): the linking
+  // step replaces the dashboard until they enter one.
+  const linkRows = (await sql`SELECT 1 FROM patients WHERE user_id = ${user.id}`) as Record<string, unknown>[]
+  if (linkRows.length === 0) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="text-2xl font-bold text-foreground">
+          {t("patient.dashboard.welcomeBack", { name: user.name.split(" ")[0] })}
+        </h1>
+        <LinkPractitionerCard />
+      </div>
+    )
+  }
 
   const entries = (await sql`
     SELECT * FROM journal_entries

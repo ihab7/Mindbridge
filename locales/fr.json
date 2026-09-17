@@ -4,7 +4,6 @@
   "nav.messages": "Messages",
   "nav.settings": "Paramètres",
   "common.dismiss": "Fermer",
-
   "settings.profile.title": "Profil du praticien",
   "settings.profile.subtitle": "Vos coordonnées professionnelles pour l'en-tête des rapports.",
   "settings.profile.hint": "Ces informations apparaissent en en-tête de vos rapports imprimés.",
@@ -21,7 +20,6 @@
   "settings.profile.save": "Enregistrer",
   "settings.profile.saving": "Enregistrement…",
   "settings.profile.saved": "Enregistré",
-
   "report.widget.title": "Rapports de suivi",
   "report.widget.subtitle": "Générez un rapport imprimable depuis le dossier d'un patient.",
   "report.widget.cta": "Choisir un patient",
@@ -112,13 +110,11 @@
   "report.format.narrative": "Résumé narratif",
   "report.format.narrativeDescription": "Pour le patient ou les notes de séance",
   "report.narrative.docTitle": "Résumé narratif",
-
   "report.hub.title": "Nouveau rapport",
   "report.hub.subtitle": "Choisissez un patient pour générer un rapport.",
   "report.hub.searchPlaceholder": "Rechercher un patient…",
   "report.hub.noPatients": "Aucun patient.",
   "report.hub.recentTitle": "Rapports récents",
-
   "report.narrative.section.treatment": "Traitement en cours",
   "report.narrative.section.mood": "Résumé de l'humeur",
   "report.narrative.section.medication": "Observance médicamenteuse",
@@ -129,7 +125,6 @@
   "report.narrative.section.overallProgress": "Évolution générale",
   "report.narrative.section.recommendations": "Recommandations",
   "report.narrative.section.nextAppointment": "Prochain rendez-vous",
-
   "report.narrative.mood.high": "L'humeur est restée stable et globalement positive durant cette période.",
   "report.narrative.mood.mid": "L'humeur s'est maintenue autour de sa ligne de base durant cette période.",
   "report.narrative.mood.low": "L'humeur a été plus basse que d'habitude durant cette période.",
@@ -137,27 +132,22 @@
   "report.narrative.mood.trendImproving": "La tendance générale est à l'amélioration.",
   "report.narrative.mood.trendDeclining": "La tendance générale est à la baisse.",
   "report.narrative.mood.notEnough": "Pas encore assez d'entrées pour dégager une tendance claire de l'humeur.",
-
   "report.narrative.medication.excellent": "Excellente observance du traitement prescrit.",
   "report.narrative.medication.good": "Bonne observance globale, avec quelques oublis occasionnels.",
   "report.narrative.medication.slipped": "L'observance s'est relâchée durant cette période, avec {count} prise(s) manquée(s).",
   "report.narrative.medication.dropped": "L'observance a nettement chuté, avec {count} prise(s) manquée(s) — un point à aborder lors de la prochaine séance.",
   "report.narrative.medication.noData": "Aucun suivi médicamenteux sur cette période.",
-
   "report.narrative.sleep.stable": "Le sommeil reste stable. Durée moyenne : {hours} h.",
   "report.narrative.sleep.short": "Le sommeil a été légèrement insuffisant. Durée moyenne : {hours} h.",
   "report.narrative.sleep.veryShort": "Le sommeil a été nettement insuffisant, avec une moyenne de {hours} h — un point à surveiller.",
   "report.narrative.sleep.downFrom": "C'est en baisse par rapport à environ {prior} h précédemment.",
   "report.narrative.sleep.noData": "Aucune donnée de sommeil sur cette période.",
-
   "report.narrative.mindfulness.regular": "Pratique régulière de pleine conscience, avec {count} séances complétées.",
   "report.narrative.mindfulness.some": "Quelques séances de pleine conscience durant cette période ({count}). Une pratique plus fréquente pourrait soutenir la progression.",
   "report.narrative.mindfulness.none": "Aucune séance de respiration ou de pleine conscience enregistrée. Introduire une courte pratique quotidienne pourrait aider.",
-
   "report.narrative.journal.withKeywords": "{count} entrées de journal, avec des thèmes récurrents : {keywords}.",
   "report.narrative.journal.countOnly": "{count} entrées de journal enregistrées durant cette période.",
   "report.narrative.journal.empty": "Aucune réflexion de journal enregistrée durant cette période.",
-
   "report.narrative.sideEffects.list": "Effets secondaires signalés : {list}.",
   "report.narrative.sideEffects.item": "{name} (×{count})",
   "report.narrative.sideEffects.none": "Aucun effet secondaire significatif signalé.",
@@ -168,11 +158,9 @@
   "report.narrative.sideEffect.insomnia": "Insomnie",
   "report.narrative.sideEffect.appetite_change": "Changement d'appétit",
   "report.narrative.sideEffect.anxiety_increase": "Augmentation de l'anxiété",
-
   "report.narrative.progress.steady": "Le patient s'engage de façon régulière dans le suivi.",
   "report.narrative.progress.someAttention": "Le patient s'engage dans le suivi, bien que certains points méritent attention.",
   "report.narrative.progress.concern": "Cette période montre une préoccupation notable concernant : {areas}. À revoir lors de la prochaine séance.",
-
   "report.narrative.rec.lowSleep": "Renforcer l'hygiène du sommeil : horaires de coucher réguliers, réduction des écrans avant le coucher",
   "report.narrative.rec.lowAdherence": "Aborder les freins à l'observance lors de la prochaine séance",
   "report.narrative.rec.highAnxiety": "Envisager d'ajouter ou d'augmenter la fréquence des exercices de respiration",
@@ -180,7 +168,6 @@
   "report.narrative.rec.decliningMood": "Faire le point sur les facteurs de stress externes évoqués dans le journal",
   "report.narrative.rec.goodProgress": "Poursuivre l'approche actuelle",
   "report.narrative.rec.checkIns": "Maintenir des points de suivi réguliers.",
-
   "report.narrative.nextAppointment.notScheduled": "Non programmé",
   "nav.mindfulness": "Pleine conscience",
   "nav.sleepStories": "Histoires du soir",
@@ -194,7 +181,6 @@
   "language.en": "Anglais",
   "language.fr": "Français",
   "language.ar": "Arabe",
-
   "common.yes": "Oui",
   "common.no": "Non",
   "common.loading": "Chargement",
@@ -209,23 +195,19 @@
   "common.unreadMessages": "-- Vous avez {count} message(s) non lu(s)",
   "common.outOfTenWithLabel": "{value}/10 - {label}",
   "common.hoursAbbrev": "h",
-
   "status.noData": "Aucune donnée",
   "status.stable": "Stable",
   "status.moderate": "Modéré",
   "status.concerning": "Préoccupant",
   "status.critical": "Critique",
   "status.aria": "État mental : {status}, humeur {mood} sur 10",
-
   "patient.dashboard.welcomeBack": "Bon retour, {name}",
   "patient.dashboard.yourPractitioner": "Votre praticien : {name}",
   "patient.dashboard.trackWellbeing": "Suivez votre bien-être quotidien ci-dessous",
-
   "patient.checkin.title": "Bilan quotidien",
   "patient.checkin.subtitle": "Comment vous sentez-vous aujourd’hui ?",
   "patient.checkin.success.saved": "Entrée de journal enregistrée",
   "patient.checkin.submit": "Envoyer",
-
   "patient.checkin.mood.label": "Humeur",
   "patient.checkin.anxiety.label": "Niveau d’anxiété",
   "patient.checkin.sleepHours.label": "Heures de sommeil",
@@ -246,28 +228,23 @@
   "patient.checkin.anxiety.strong": "Forte",
   "patient.checkin.anxiety.veryStrong": "Très forte",
   "patient.checkin.selectBoth": "Choisissez votre humeur et votre anxiété.",
-
   "patient.checkin.moodScale.veryLow": "Très basse",
   "patient.checkin.moodScale.low": "Basse",
   "patient.checkin.moodScale.moderate": "Modérée",
   "patient.checkin.moodScale.good": "Bonne",
   "patient.checkin.moodScale.excellent": "Excellente",
-
   "patient.checkin.anxietyScale.calm": "Calme",
   "patient.checkin.anxietyScale.mild": "Légère",
   "patient.checkin.anxietyScale.moderate": "Modérée",
   "patient.checkin.anxietyScale.high": "Élevée",
   "patient.checkin.anxietyScale.severe": "Sévère",
-
   "patient.checkin.challenges.label": "Difficultés",
   "patient.checkin.challenges.placeholder": "Qu’est-ce qui a été difficile aujourd’hui ?",
   "patient.checkin.achievements.label": "Réussites",
   "patient.checkin.achievements.placeholder": "Qu’est-ce qui s’est bien passé aujourd’hui ?",
-
   "patient.checkin.sideEffects.label": "Effets secondaires",
   "patient.checkin.sideEffects.otherLabel": "Décrivez d’autres effets secondaires",
   "patient.checkin.sideEffects.otherPlaceholder": "Décrivez d’autres effets secondaires",
-
   "patient.checkin.sideEffects.none": "Aucun",
   "patient.checkin.sideEffects.nausea": "Nausées",
   "patient.checkin.sideEffects.headache": "Maux de tête",
@@ -277,10 +254,8 @@
   "patient.checkin.sideEffects.appetite_change": "Changement d’appétit",
   "patient.checkin.sideEffects.anxiety_increase": "Augmentation de l’anxiété",
   "patient.checkin.sideEffects.other": "Autre",
-
   "patient.checkin.errors.failedToSubmit": "Échec de l’envoi",
   "patient.checkin.errors.failedToSubmitTryAgain": "Impossible d’envoyer l’entrée. Veuillez réessayer.",
-
   "patient.entries.empty": "Aucune entrée pour le moment. Envoyez votre premier bilan ci-dessus.",
   "patient.entries.title": "Entrées récentes",
   "patient.entries.subtitle": "Vos {count} dernières entrées",
@@ -300,13 +275,11 @@
   "patient.entries.medMissed": "Médicament non pris",
   "patient.entries.challenge": "Difficulté :",
   "patient.entries.win": "Réussite :",
-
   "patient.charts.lastEntries": "Dernières {count} entrées",
   "patient.charts.mood.empty": "Aucune entrée. Commencez à écrire pour voir les tendances.",
   "patient.charts.mood.title": "Tendances humeur et anxiété",
   "patient.charts.mood.legend.mood": "Humeur",
   "patient.charts.mood.legend.anxiety": "Anxiété",
-
   "patient.charts.sleepMedication.empty": "Aucune entrée.",
   "patient.charts.sleepMedication.title": "Sommeil et médication",
   "patient.charts.sleepMedication.subtitle": "Heures de sommeil et observance du traitement",
@@ -314,7 +287,6 @@
   "patient.charts.sleepMedication.tooltip.sleep": "Sommeil",
   "patient.charts.sleepMedication.tooltip.sleepHours": "{hours} h{medStatus}",
   "patient.charts.sleepMedication.bar.sleepHours": "Heures de sommeil",
-
   "wellbeing.label": "Votre semaine",
   "wellbeing.subline": "Touchez un jour pour voir comment il s'est passé.",
   "wellbeing.headline.default": "Voici votre semaine",
@@ -339,7 +311,6 @@
   "wellbeing.empty.thin.subline": "Notez votre humeur quelques jours pour voir votre semaine ici.",
   "wellbeing.empty.zero.title": "Commencez par une première note d'humeur",
   "wellbeing.empty.zero.cta": "Accéder à votre check-in",
-
   "patient.sessionPrep.title": "Préparer la prochaine séance",
   "patient.sessionPrep.subtitle": "Notez ce qui compte pour ne rien oublier.",
   "patient.sessionPrep.topics.label": "Sujets à aborder",
@@ -353,14 +324,12 @@
   "patient.sessionPrep.errors.failedToLoadTryAgain": "Impossible de charger la préparation. Actualisez et réessayez.",
   "patient.sessionPrep.errors.failedToSave": "Échec de l’enregistrement",
   "patient.sessionPrep.errors.failedToSaveTryAgain": "Impossible d’enregistrer. Veuillez réessayer.",
-
   "patient.feedback.title": "Message de votre praticien",
   "patient.feedback.from": "De {name}",
   "patient.feedback.empty": "Aucun message pour le moment.",
   "patient.feedback.emptyHint": "Vous verrez des conseils ici lorsque votre praticien mettra à jour votre plan de soins.",
   "patient.feedback.nextAppointment": "Prochain rendez-vous : {value}",
   "patient.feedback.updated": "Mis à jour {value}",
-
   "patient.wellness.title": "Tâches de bien-être quotidiennes",
   "patient.wellness.subtitle": "De petites habitudes saines pour soutenir votre bien-être mental aujourd'hui.",
   "patient.wellness.progressLabel": "Progression du jour",
@@ -378,7 +347,6 @@
   "patient.wellness.tasks.journal.description": "Réfléchissez à vos pensées et émotions.",
   "patient.wellness.tasks.sleep.title": "Dormir avant 23h",
   "patient.wellness.tasks.sleep.description": "Maintenez une routine de sommeil saine.",
-
   "practitioner.wellbeing.header.window": "{days} jours · {logged} jours sur {total} renseignés",
   "practitioner.wellbeing.header.message": "Message",
   "practitioner.wellbeing.chip.anxiety": "Anxiété",
@@ -407,7 +375,6 @@
   "practitioner.wellbeing.readout.hint": "Survolez ou touchez un jour pour les détails.",
   "practitioner.wellbeing.state.noData": "Aucune saisie pour ce patient pour l'instant.",
   "practitioner.wellbeing.state.thin": "Données limitées — {logged} jours sur {total} renseignés. À interpréter avec prudence.",
-
   "practitioner.feedback.title": "Retour au patient",
   "practitioner.feedback.subtitle": "Une courte note visible par le patient sur son tableau de bord.",
   "practitioner.feedback.messageLabel": "Message",
@@ -435,7 +402,6 @@
   "practitioner.clinicalRecord.errors.diagnosisSaveFailed": "Impossible d'enregistrer le diagnostic",
   "practitioner.clinicalRecord.errors.medicationRequired": "Le nom du médicament est obligatoire",
   "practitioner.clinicalRecord.errors.treatmentSaveFailed": "Impossible d'enregistrer le traitement",
-
   "mindfulness.title": "Exercices rapides",
   "mindfulness.subtitle": "Un moment difficile ? Choisissez un exercice court, dès maintenant.",
   "mindfulness.alsoProgram": "Vous suivez aussi un programme guidé → Mon programme",
@@ -445,7 +411,6 @@
   "mindfulness.exercises.threeMinute": "Respiration 3 minutes",
   "mindfulness.exercises.calmDown": "Exercice d’apaisement",
   "mindfulness.exercises.sleep": "Respiration pour le sommeil",
-
   "mindfulness.session.inhale": "Inspirez",
   "mindfulness.session.hold": "Retenez",
   "mindfulness.session.exhale": "Expirez",
@@ -466,7 +431,6 @@
   "mindfulness.recommended.subtitleFallback": "Une courte séance peut vous aider à vous recentrer.",
   "mindfulness.recommended.pill": "Aujourd’hui recommandé",
   "mindfulness.streak": "Série de pleine conscience : {days} jour(s)",
-
   "program.assignedBy": "{name} vous a assigné ce programme",
   "program.quickLink": "Besoin d'un exercice court tout de suite ? → Exercices rapides",
   "program.stats.sessionsDone": "Séances",
@@ -562,7 +526,6 @@
   "practitioner.review.restore": "Restaurer",
   "practitioner.review.redraftConfirmTitle": "Abandonner vos modifications et refaire un brouillon ?",
   "practitioner.review.redraftConfirmBody": "Un nouveau brouillon redemande un plan à l'assistant et abandonne les modifications apportées à celui-ci.",
-
   "sleepStories.library.title": "Histoires du soir",
   "sleepStories.library.subtitle": "Détendez-vous avec une histoire racontée avant de dormir",
   "sleepStories.library.languageFilter": "Filtrer par langue",
@@ -589,10 +552,8 @@
   "sleepStories.ambient.none": "Ambiance",
   "sleepStories.nudge.drop": "Votre sommeil a diminué cette semaine — moyenne de {avg}h. Essayez l'histoire de ce soir pour vous détendre.",
   "sleepStories.nudge.low": "Votre sommeil reste faible — moyenne de {avg}h cette semaine. Essayez l'histoire de ce soir pour vous détendre.",
-
   "nav.signIn": "Connexion",
   "nav.getStarted": "Commencer",
-
   "landing.badge": "Suivi continu de la santé mentale",
   "landing.heroTitle": "Le lien entre vos consultations",
   "landing.heroSubtitle": "MindBridge connecte psychiatres et psychologues à leurs patients pour un suivi quotidien de la santé mentale, des alertes en temps réel et une messagerie sécurisée — le tout sur une plateforme calme et épurée.",
@@ -639,8 +600,8 @@
   "landing.mockup.overview": "Aperçu de vos patients aujourd'hui",
   "landing.mockup.chart": "Évolution — 30 derniers jours",
   "landing.feat.badge": "Fonctionnalités principales",
-  "landing.feat.title": "Tout ce qu'il vous faut pour un suivi continu",
-  "landing.feat.subtitle": "Des outils simples et sécurisés pour les praticiens et les patients.",
+  "landing.feat.title": "Six outils, un seul objectif",
+  "landing.feat.subtitle": "Vous faire gagner du temps entre deux consultations, sans jamais remplacer votre jugement clinique.",
   "landing.feat.journal.title": "Journal quotidien",
   "landing.feat.journal.desc": "Les patients enregistrent chaque jour leur humeur, sommeil, anxiété et prise de médicaments via un formulaire simple et intuitif.",
   "landing.feat.analytics.title": "Analyses visuelles",
@@ -682,7 +643,6 @@
   "landing.cta.subtitle": "Rejoignez MindBridge et offrez à vos patients un suivi plus structuré, plus clair et plus serein.",
   "landing.cta.button": "Commencer gratuitement",
   "landing.cta.noCard": "Aucune carte bancaire requise",
-
   "auth.email": "E-mail",
   "auth.emailPlaceholder": "vous@exemple.com",
   "auth.password": "Mot de passe",
@@ -710,7 +670,6 @@
   "auth.errors.registrationFailed": "Échec de l'inscription",
   "auth.errors.unexpectedResponse": "Réponse inattendue du serveur ({status}).",
   "auth.errors.details": "Détails : {details}",
-
   "practitioner.dashboard.totalPatients": "Total patients",
   "practitioner.dashboard.openAlerts": "Alertes ouvertes",
   "practitioner.dashboard.criticalMood": "Humeur critique",
@@ -722,7 +681,6 @@
   "practitioner.patients.filterChip": "Filtre : {name} ({count})",
   "practitioner.patients.clearFilter": "effacer",
   "practitioner.patients.emptyForFilter": "Aucun patient dans cet état actuellement.",
-
   "video.button": "Consultation vidéo",
   "video.dialog.title": "Consultation vidéo avec {name}",
   "video.dialog.typeLabel": "Type d'appel",
@@ -738,7 +696,6 @@
   "video.dialog.submitUrgent": "Démarrer l'appel",
   "video.dialog.submitScheduled": "Planifier",
   "video.dialog.scheduledToast": "Rendez-vous programmé pour {date}",
-
   "video.card.urgentTitle": "{name} souhaite vous parler",
   "video.card.urgentSubtitle": "Consultation vidéo — appel entrant",
   "video.card.scheduledReadyTitle": "Consultation vidéo avec {name}",
@@ -746,7 +703,6 @@
   "video.card.notNow": "Ce n'est pas le moment",
   "video.card.scheduledTitle": "Consultation vidéo prévue",
   "video.card.scheduledWith": "{date} avec {name}",
-
   "video.consent.title": "Consultation vidéo",
   "video.consent.intro": "Cette consultation est un acte médical à distance.",
   "video.consent.lead": "En rejoignant, vous acceptez que :",
@@ -757,7 +713,6 @@
   "video.consent.point5": "Cette consultation ne remplace pas une prise en charge d'urgence — en cas de crise, contactez le SAMU (190) ou rendez-vous aux urgences",
   "video.consent.decline": "Je refuse",
   "video.consent.accept": "J'accepte et rejoins l'appel",
-
   "video.room.title": "Salle de consultation",
   "video.room.modeUrgent": "Appel urgent",
   "video.room.modeScheduled": "Rendez-vous planifié",
@@ -773,5 +728,71 @@
   "video.room.permission.error": "Impossible d'accéder à la caméra et au microphone. Vérifiez qu'aucune autre application ne les utilise, puis réessayez.",
   "video.room.permission.retry": "Réessayer",
   "video.room.loadError": "Impossible de charger la salle de consultation. Vérifiez votre connexion et rafraîchissez la page. Si le problème persiste, contactez le support.",
-  "video.room.backToDashboard": "Retour au tableau de bord"
+  "video.room.backToDashboard": "Retour au tableau de bord",
+  "landing.feat.checkin.title": "Bilan quotidien",
+  "landing.feat.checkin.desc": "Votre patient renseigne son humeur, son anxiété, son sommeil et son observance en moins d'une minute. Un formulaire court, pensé pour tenir dans la durée.",
+  "landing.feat.evolution.title": "Évolution depuis l'inclusion",
+  "landing.feat.evolution.desc": "Comparez l'état actuel à la période précédente ou au point de départ du suivi. Deux points de mieux en trois mois ne se lisent pas comme deux points en deux ans.",
+  "landing.feat.programs.title": "Programmes assignables",
+  "landing.feat.programs.desc": "Assignez un parcours structuré d'exercices, ajustez-le avant de l'envoyer, puis suivez séance après séance ce que votre patient a réellement fait.",
+  "landing.feat.stories.title": "Histoires du soir",
+  "landing.feat.stories.desc": "Une bibliothèque de récits apaisants à écouter au coucher, en arabe, en français et en anglais — dont des contes de la tradition orale.",
+  "landing.journey.badge": "Comment ça fonctionne",
+  "landing.journey.title": "Entre deux consultations, le suivi continue",
+  "landing.journey.step1.title": "Le patient",
+  "landing.journey.step1.desc": "Renseigne son état chaque jour",
+  "landing.journey.step2.title": "MindBridge",
+  "landing.journey.step2.desc": "Analyse et repère les tendances",
+  "landing.journey.step3.title": "Vous",
+  "landing.journey.step3.desc": "Visualisez ce qui compte vraiment",
+  "landing.journey.step4.title": "La consultation",
+  "landing.journey.step4.desc": "Mieux préparée, plus ciblée",
+  "landing.preview.badge": "Aperçu patient",
+  "landing.preview.title": "Une vision claire de chaque patient",
+  "landing.preview.followedSince": "Suivi depuis 84 jours",
+  "landing.preview.alertSleep": "Sommeil irrégulier depuis 3 jours",
+  "landing.preview.reportReady": "Rapport disponible en un clic",
+  "landing.reports.badge": "Rapports",
+  "landing.reports.title": "Le bon format, pour le bon destinataire",
+  "landing.reports.tabClinical": "Rapport clinique",
+  "landing.reports.tabNarrative": "Résumé narratif",
+  "landing.reports.clinical1": "Diagnostic et traitement en cours",
+  "landing.reports.clinical2": "Tableau indicateurs et évolution",
+  "landing.reports.clinical3": "Évaluation du risque",
+  "landing.reports.clinical4": "Signature et en-tête professionnel",
+  "landing.reports.narrative1": "Résumé chronologique lisible",
+  "landing.reports.narrative2": "Ton chaleureux, sans jargon",
+  "landing.reports.narrative3": "Recommandations concrètes",
+  "landing.reports.narrative4": "Prochain rendez-vous inclus",
+  "linking.code.label": "Code de liaison",
+  "linking.errors.invalid": "Ce code n'est plus valide. Demandez-en un nouveau à votre praticien.",
+  "linking.errors.format": "Le code comporte 6 caractères, lettres et chiffres.",
+  "linking.errors.alreadyLinked": "Vous êtes déjà suivi par {name}. Contactez le support pour changer de praticien.",
+  "linking.errors.generic": "Impossible de lier votre compte pour le moment. Réessayez.",
+  "auth.register.code.title": "Avez-vous un code de votre praticien ?",
+  "auth.register.code.subtitle": "Votre praticien vous le remet en consultation ou par message. Il relie votre compte à son suivi.",
+  "auth.register.code.continue": "Continuer",
+  "auth.register.code.skip": "Je n'ai pas encore de code — créer mon compte quand même",
+  "auth.register.code.back": "Modifier mes informations",
+  "patient.unlinked.title": "Vous n'êtes pas encore suivi par un praticien",
+  "patient.unlinked.body": "Si vous avez consulté un psychiatre ou psychologue utilisant MindBridge, demandez-lui un code de liaison.",
+  "patient.unlinked.submit": "Lier mon compte",
+  "patient.unlinked.findPractitioner": "Vous cherchez un praticien ?",
+  "patient.unlinked.directoryLink": "Voir l'annuaire",
+  "practitioner.linking.title": "Nouveau patient",
+  "practitioner.linking.subtitle": "Générez un code à usage unique et transmettez-le au patient, en cabinet ou par message. Il le saisit pour être relié à votre suivi.",
+  "practitioner.linking.generate": "Générer un code pour un nouveau patient",
+  "practitioner.linking.generateAnother": "Générer un autre code",
+  "practitioner.linking.validUntil": "Valide jusqu'au {date}",
+  "practitioner.linking.copy": "Copier le code",
+  "practitioner.linking.copied": "Code copié",
+  "practitioner.linking.error": "Impossible de générer un code. Réessayez.",
+  "practitioner.linking.recent": "Codes récents",
+  "practitioner.linking.status.used": "Utilisé par {name} · {date}",
+  "practitioner.linking.status.usedUnknown": "Utilisé · {date}",
+  "practitioner.linking.status.expired": "Expiré",
+  "practitioner.linking.newLinks.one": "1 nouveau patient lié",
+  "practitioner.linking.newLinks.other": "{count} nouveaux patients liés",
+  "practitioner.linking.newLinks.dismiss": "Marquer comme vu",
+  "finder.profile.call": "Appeler"
 }

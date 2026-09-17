@@ -18,7 +18,9 @@ import { PsychiatristFinder } from "@/components/psychiatrist/psychiatrist-finde
 import { Reveal } from "@/components/landing/reveal"
 import { DashboardMockup } from "@/components/landing/dashboard-mockup"
 import { FeaturesSection } from "@/components/landing/features-section"
-import { HelpSection } from "@/components/landing/help-section"
+import { JourneySection } from "@/components/landing/journey-section"
+import { PatientPreviewSection } from "@/components/landing/patient-preview-section"
+import { ReportsTabsSection } from "@/components/landing/reports-tabs-section"
 import { CtaBanner } from "@/components/landing/cta-banner"
 import { getSession } from "@/lib/auth"
 import { getServerI18n } from "@/lib/server-i18n"
@@ -81,50 +83,27 @@ export default async function LandingPage() {
         .landingTints {
           --tint-blue: 212 90% 55%;
           --tint-violet: 268 70% 60%;
+          --tint-magenta: 322 72% 52%;
           --tint-alpha: 0.10;
         }
         .dark .landingTints {
           --tint-blue: 212 90% 68%;
           --tint-violet: 268 70% 72%;
+          --tint-magenta: 322 78% 66%;
           --tint-alpha: 0.18;
         }
 
-        .featureCard {
-          transition: transform .22s cubic-bezier(.34,1.3,.64,1),
-                      border-color .22s cubic-bezier(.34,1.3,.64,1),
-                      box-shadow .22s cubic-bezier(.34,1.3,.64,1);
-        }
-        .featureCard:hover {
-          transform: translateY(-3px);
-          border-color: hsl(var(--primary) / 0.4);
-          box-shadow: 0 8px 24px hsl(var(--foreground) / 0.06);
-        }
 
-        /* Continuous connector behind the numbered circles: one line on the
-           container, not a border per row. inset-inline-start puts it on the
-           right in RTL. */
-        .tlLine::before {
-          content: "";
-          position: absolute;
-          inset-inline-start: 13px;
-          top: 13px;
-          bottom: 13px;
-          width: 1px;
-          background: hsl(var(--border));
-          transform: scaleY(0);
-          transform-origin: top;
-          transition: transform .6s cubic-bezier(.16,1,.3,1);
-        }
-        .tlLine.in::before { transform: scaleY(1); }
+
+        .tabPanel { animation: tabFade .15s ease; }
+        @keyframes tabFade { from { opacity: 0 } to { opacity: 1 } }
 
         @media (prefers-reduced-motion: reduce) {
           .reveal { opacity: 1; transform: none; transition: none; }
           .navLink::after { transition: none; }
           .liftOnHover:hover { transform: none !important; }
           .pressable:active { transform: none !important; }
-          .featureCard { transition: none; }
-          .featureCard:hover { transform: none; }
-          .tlLine::before { transform: scaleY(1); transition: none; }
+          .tabPanel { animation: none; }
         }
       `}</style>
 
@@ -159,7 +138,7 @@ export default async function LandingPage() {
               {t("landing.nav.login")}
             </Link>
             <Link
-              href="/register"
+              href="/join"
               className="rounded-full bg-primary px-4 py-2 text-[13px] font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
               {t("landing.nav.start")}
@@ -190,7 +169,7 @@ export default async function LandingPage() {
 
                 <div className="mt-[26px] flex flex-wrap gap-3">
                   <Link
-                    href="/register"
+                    href="/join"
                     className="liftOnHover pressable inline-flex items-center gap-2 rounded-full bg-primary px-6 py-[13px] text-sm font-medium text-primary-foreground transition-all duration-[180ms] ease-[cubic-bezier(.34,1.4,.64,1)] hover:-translate-y-0.5 hover:shadow-[0_10px_24px_hsl(var(--primary)/0.32)] active:scale-[0.97]"
                   >
                     {t("landing.hero.ctaPrimary")}
@@ -238,9 +217,32 @@ export default async function LandingPage() {
 
         <FeaturesSection />
 
-        <HelpSection />
+        <JourneySection />
 
-        <section className="px-6 py-20">
+        <PatientPreviewSection />
+
+        <ReportsTabsSection
+          strings={{
+            badge: t("landing.reports.badge"),
+            title: t("landing.reports.title"),
+            tabClinical: t("landing.reports.tabClinical"),
+            tabNarrative: t("landing.reports.tabNarrative"),
+            clinical: [
+              t("landing.reports.clinical1"),
+              t("landing.reports.clinical2"),
+              t("landing.reports.clinical3"),
+              t("landing.reports.clinical4"),
+            ],
+            narrative: [
+              t("landing.reports.narrative1"),
+              t("landing.reports.narrative2"),
+              t("landing.reports.narrative3"),
+              t("landing.reports.narrative4"),
+            ],
+          }}
+        />
+
+        <section id="annuaire" className="scroll-mt-20 px-6 py-20">
           <div className="mx-auto max-w-6xl">
             <PsychiatristFinder isLoggedIn={Boolean(user)} />
           </div>

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { CheckCircle2, Lock, MapPin, Phone, Share2, Globe, Mail, Users } from "lucide-react"
 import type { PractitionerWithDistance } from "@/hooks/use-practitioners"
+import { useT } from "@/components/i18n-provider"
 
 function SectionLabel({ icon, label }: { icon: string; label: string }) {
   return (
@@ -23,6 +24,7 @@ export function PractitionerProfile({
   isLoggedIn: boolean
   onLoginRequest: () => void
 }) {
+  const t = useT()
   if (!practitioner) {
     return (
       <div className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-xl border border-border bg-card p-8 text-center">
@@ -146,7 +148,10 @@ export function PractitionerProfile({
                   href={`tel:${practitioner.phone}`}
                   className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 >
-                  📅 Book consultation
+                  {/* A phone call, not a booking or a link: patients are attached
+                      to a practitioner only through a linking code the
+                      practitioner hands over (lib/linking/codes.ts). */}
+                  📞 {t("finder.profile.call")}
                 </a>
               )}
               {practitioner.email && (

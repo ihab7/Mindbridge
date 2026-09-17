@@ -28,7 +28,7 @@ const TILE_URLS = {
 
 // Inner ".mb-pin" div is what actually scales on hover (see globals.css) --
 // the outer wrapper Leaflet positions via inline transform, so it's left alone.
-function createIcon(color: string, size = 32) {
+export function createIcon(color: string, size = 32) {
   return L.divIcon({
     className: "",
     html: `

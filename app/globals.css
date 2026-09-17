@@ -175,3 +175,13 @@ body {
 .leaflet-marker-icon {
   cursor: pointer;
 }
+
+/* Practitioner location picker: OSM's standard tiles have no dark style, so
+   darken the tile pane alone. Markers and controls sit in other panes and keep
+   their real colours. */
+.dark .mb-picker-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+.mb-picker-map.leaflet-container {
+  background: hsl(var(--muted));
+}

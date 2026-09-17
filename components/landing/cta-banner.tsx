@@ -26,7 +26,7 @@ export async function CtaBanner() {
 
             <div>
               <Link
-                href="/register"
+                href="/join"
                 className="liftOnHover pressable inline-flex items-center gap-2 rounded-full bg-primary px-7 py-[15px] text-[14.5px] font-medium text-primary-foreground transition-all duration-[180ms] ease-[cubic-bezier(.34,1.4,.64,1)] hover:-translate-y-0.5 hover:shadow-[0_10px_24px_hsl(var(--primary)/0.32)] active:scale-[0.97]"
               >
                 {t("landing.cta.button")}

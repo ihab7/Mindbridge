@@ -2,9 +2,9 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
-import { Activity, Loader2, MapPin, CheckCircle2 } from "lucide-react"
+import { Activity, Loader2, MapPin } from "lucide-react"
 import { SPECIALTY_TAGS, LANGUAGE_OPTIONS, WEEKDAYS } from "@/lib/directory"
-import { geocodeAddress } from "@/lib/geocode"
+import { LocationPickerDialog, type PickedLocation } from "@/components/psychiatrist/location-picker-dialog"
 
 type PlanId = "basic" | "premium"
 
@@ -44,12 +44,20 @@ export default function PractitionerRegisterPage() {
   const [experienceYears, setExperienceYears] = useState("")
   const [phone, setPhone] = useState("")
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
   const [clinicName, setClinicName] = useState("")
   const [address, setAddress] = useState("")
   const [city, setCity] = useState("")
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [manualCoords, setManualCoords] = useState(false)
-  const [geocoding, setGeocoding] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
+  // Reverse-geocoded label of the confirmed pin ("" if unknown or typed by hand).
+  const [locationLabel, setLocationLabel] = useState("")
+  // True while address / city hold text the map filled in. Once the
+  // practitioner types in a field it is theirs, and a later pin won't overwrite
+  // it — typed addresses usually carry detail the map can't (building, floor).
+  const [addressFromMap, setAddressFromMap] = useState(false)
+  const [cityFromMap, setCityFromMap] = useState(false)
   const [bio, setBio] = useState("")
   const [tags, setTags] = useState<string[]>([])
   const [languages, setLanguages] = useState<string[]>([])
@@ -60,7 +68,6 @@ export default function PractitionerRegisterPage() {
   )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
-  const [success, setSuccess] = useState(false)
 
   function toggleTag(tag: string) {
     setTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]))
@@ -69,19 +76,16 @@ export default function PractitionerRegisterPage() {
     setLanguages((prev) => (prev.includes(lang) ? prev.filter((l) => l !== lang) : [...prev, lang]))
   }
 
-  async function handleLocate() {
-    if (!address && !city) return
-    setGeocoding(true)
-    try {
-      const result = await geocodeAddress(`${address}, ${city}, Tunisia`)
-      if (result) {
-        setCoords({ lat: result.lat, lng: result.lng })
-      } else {
-        setError("Could not locate this address automatically — enter coordinates manually below.")
-        setManualCoords(true)
-      }
-    } finally {
-      setGeocoding(false)
+  function handleLocationConfirmed(location: PickedLocation) {
+    setCoords({ lat: location.lat, lng: location.lng })
+    setLocationLabel(location.label)
+    if (location.address && (!address.trim() || addressFromMap)) {
+      setAddress(location.address)
+      setAddressFromMap(true)
+    }
+    if (location.city && (!city.trim() || cityFromMap)) {
+      setCity(location.city)
+      setCityFromMap(true)
     }
   }
 
@@ -89,8 +93,12 @@ export default function PractitionerRegisterPage() {
     e.preventDefault()
     setError("")
 
-    if (!fullName || !specialty || !city || !address || (!phone && !email)) {
-      setError("Please fill in your name, specialty, city, address, and a phone or email.")
+    if (!fullName || !specialty || !city || !address || !email || !password) {
+      setError("Please fill in your name, specialty, city, address, email and password.")
+      return
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.")
       return
     }
 
@@ -115,6 +123,7 @@ export default function PractitionerRegisterPage() {
           longitude: coords?.lng ?? null,
           phone,
           email,
+          password,
           languages,
           experience_years: experienceYears ? Number(experienceYears) : null,
           tags,
@@ -124,33 +133,14 @@ export default function PractitionerRegisterPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Registration failed")
-      setSuccess(true)
+      // Account + listing created and the session cookie is set: go straight
+      // to the dashboard, as /register does for a patient. Full navigation so
+      // the server layout reads the fresh cookie. `submitting` stays true.
+      window.location.href = "/practitioner"
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Registration failed")
-    } finally {
       setSubmitting(false)
     }
-  }
-
-  if (success) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center">
-          <CheckCircle2 className="mx-auto mb-4 h-10 w-10 text-primary" />
-          <h1 className="text-xl font-bold text-foreground">Application received!</h1>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            We&apos;ll review your profile and activate it within 24 hours. You&apos;ll receive a confirmation at{" "}
-            <span className="font-medium text-foreground">{email || phone}</span>.
-          </p>
-          <Link
-            href="/"
-            className="mt-6 inline-flex items-center justify-center rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Back to MindBridge
-          </Link>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -247,8 +237,11 @@ export default function PractitionerRegisterPage() {
             <Field label="Phone number">
               <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} placeholder="+216 ..." />
             </Field>
-            <Field label="Email address">
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+            <Field label="Email address" required>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={inputClass} />
+            </Field>
+            <Field label="Password" required>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" className={inputClass} placeholder="8 characters minimum" />
             </Field>
           </FormSection>
 
@@ -258,22 +251,25 @@ export default function PractitionerRegisterPage() {
               <input value={clinicName} onChange={(e) => setClinicName(e.target.value)} className={inputClass} />
             </Field>
             <Field label="City" required>
-              <input value={city} onChange={(e) => setCity(e.target.value)} required className={inputClass} placeholder="Tunis" />
+              <input value={city} onChange={(e) => { setCity(e.target.value); setCityFromMap(false) }} required className={inputClass} placeholder="Tunis" />
             </Field>
             <Field label="Full address" required>
-              <input value={address} onChange={(e) => setAddress(e.target.value)} required className={inputClass} />
+              <input value={address} onChange={(e) => { setAddress(e.target.value); setAddressFromMap(false) }} required className={inputClass} />
             </Field>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={handleLocate}
-                disabled={geocoding}
+                onClick={() => setMapOpen(true)}
                 className="flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-60"
               >
-                {geocoding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}
-                Locate on map
+                <MapPin className="h-3.5 w-3.5" />
+                {coords ? "Change location on map" : "Locate on map"}
               </button>
-              {coords && <span className="text-xs text-muted-foreground">📍 {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}</span>}
+              {coords && (
+                <span className="min-w-0 text-xs text-muted-foreground">
+                  📍 {locationLabel || `${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => setManualCoords((v) => !v)}
@@ -285,13 +281,20 @@ export default function PractitionerRegisterPage() {
             {manualCoords && (
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Latitude">
-                  <input type="number" step="any" value={coords?.lat ?? ""} onChange={(e) => setCoords((c) => ({ lat: Number(e.target.value), lng: c?.lng ?? 0 }))} className={inputClass} />
+                  <input type="number" step="any" value={coords?.lat ?? ""} onChange={(e) => { setLocationLabel(""); setCoords((c) => ({ lat: Number(e.target.value), lng: c?.lng ?? 0 })) }} className={inputClass} />
                 </Field>
                 <Field label="Longitude">
-                  <input type="number" step="any" value={coords?.lng ?? ""} onChange={(e) => setCoords((c) => ({ lat: c?.lat ?? 0, lng: Number(e.target.value) }))} className={inputClass} />
+                  <input type="number" step="any" value={coords?.lng ?? ""} onChange={(e) => { setLocationLabel(""); setCoords((c) => ({ lat: c?.lat ?? 0, lng: Number(e.target.value) })) }} className={inputClass} />
                 </Field>
               </div>
             )}
+            <LocationPickerDialog
+              open={mapOpen}
+              onOpenChange={setMapOpen}
+              value={coords ? { ...coords, address: addressFromMap ? address : "", city: cityFromMap ? city : "", label: locationLabel } : null}
+              addressHint={{ address, city }}
+              onConfirm={handleLocationConfirmed}
+            />
           </FormSection>
 
           {/* Profile content */}

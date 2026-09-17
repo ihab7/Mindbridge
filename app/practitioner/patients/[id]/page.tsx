@@ -18,6 +18,7 @@ import {
   parseSideEffectsFromDb,
   sideEffectsKeyToLabel,
 } from "@/lib/side-effects"
+import { markLinksSeen } from "@/lib/linking/codes"
 
 export default async function PatientDetailPage({
   params,
@@ -37,6 +38,10 @@ export default async function PatientDetailPage({
     SELECT 1 FROM patients WHERE user_id = ${patientId} AND practitioner_id = ${user.id}
   `) as Record<string, unknown>[]
   if (authorized.length === 0) redirect("/practitioner/patients")
+
+  // Opening a newly linked patient's page acknowledges the "new patient
+  // linked" notice for them. Best-effort: never blocks the page.
+  await markLinksSeen(sql, user.id, patientId).catch(() => {})
 
   const patientRows = (await sql`SELECT id, name, email FROM users WHERE id = ${patientId}`) as Record<string, unknown>[]
   if (patientRows.length === 0) redirect("/practitioner/patients")

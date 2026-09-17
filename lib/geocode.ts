@@ -64,6 +64,57 @@ export async function geocodeSuggestions(
   }))
 }
 
+export type ReverseGeocodedAddress = {
+  /** Street line, e.g. "47 Avenue Habib Bourguiba, Habib Thameur". May be "". */
+  address: string
+  /** Locality, e.g. "Tunis". May be "". */
+  city: string
+  /** One readable line for previews: street line + city. */
+  label: string
+}
+
+// Street-level reverse lookup for the practitioner location picker, where the
+// point is a specific cabinet -- reverseGeocode() below stops at the
+// neighbourhood, which is right for a patient's search origin but too coarse
+// here. Returns null on any failure; callers keep the coordinates regardless.
+export async function reverseGeocodeAddress(
+  lat: number,
+  lng: number,
+  signal?: AbortSignal,
+): Promise<ReverseGeocodedAddress | null> {
+  const params = new URLSearchParams({
+    format: "json",
+    lat: String(lat),
+    lon: String(lng),
+    zoom: "18",
+    addressdetails: "1",
+    "accept-language": "fr",
+  })
+
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+      headers: { "User-Agent": "MindBridge/1.0 (contact@mindbridge.app)" },
+      signal,
+    })
+    if (!res.ok) return null
+
+    const data = await res.json()
+    const a = data?.address
+    if (!a) return null
+
+    const street = [a.house_number, a.road ?? a.pedestrian ?? a.footway].filter(Boolean).join(" ")
+    const area: string | undefined = a.suburb ?? a.neighbourhood ?? a.quarter ?? a.city_district
+    const city: string = a.city ?? a.town ?? a.village ?? a.municipality ?? a.county ?? a.state ?? ""
+    const address = [street, area].filter(Boolean).join(", ")
+
+    const label = [address, city].filter(Boolean).join(", ")
+    if (!label) return null
+    return { address, city, label }
+  } catch {
+    return null
+  }
+}
+
 // Turns a coordinate pair into a short, readable label ("Ariana, Tunisie")
 // instead of Nominatim's full multi-line display_name.
 export async function reverseGeocode(lat: number, lng: number): Promise<string> {
