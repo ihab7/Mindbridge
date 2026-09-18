@@ -3,6 +3,7 @@
 import { CheckCircle2 } from "lucide-react"
 import { isOpenNow } from "@/lib/directory"
 import type { PractitionerWithDistance } from "@/hooks/use-practitioners"
+import { UserAvatar } from "@/components/user-avatar"
 
 export function PractitionerCard({
   practitioner,
@@ -35,13 +36,12 @@ export function PractitionerCard({
       )}
 
       <div className="flex items-start gap-3">
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${
-            isPremium ? "bg-accent" : "bg-primary"
-          }`}
-        >
-          {practitioner.full_name.charAt(0)}
-        </div>
+        <UserAvatar
+          src={practitioner.photo_url}
+          name={practitioner.full_name}
+          decorative
+          className={`h-10 w-10 text-sm font-semibold text-white ${isPremium ? "bg-accent" : "bg-primary"}`}
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate pr-14 text-sm font-semibold text-foreground">{practitioner.full_name}</p>
           <p className="truncate text-xs text-muted-foreground">{practitioner.specialty}</p>

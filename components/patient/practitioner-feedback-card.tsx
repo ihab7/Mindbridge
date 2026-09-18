@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useMemo, useState } from "react"
+import { UserAvatar } from "@/components/user-avatar"
 import { MessageCircle } from "lucide-react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,6 +14,7 @@ type FeedbackResponse = {
     nextAppointmentAt: string | null
     updatedAt: string
     practitionerName: string
+    practitionerAvatarUrl: string | null
   }
 }
 
@@ -66,7 +68,15 @@ export function PractitionerFeedbackCard() {
           <span>{t("patient.feedback.title")}</span>
         </CardTitle>
         {!loading && feedback?.practitionerName ? (
-          <CardDescription className="text-xs">{feedback.practitionerName}</CardDescription>
+          <CardDescription className="flex items-center gap-2 text-xs">
+            <UserAvatar
+              src={feedback.practitionerAvatarUrl}
+              name={feedback.practitionerName}
+              decorative
+              className="h-6 w-6 bg-primary/10 text-[11px] font-semibold text-primary"
+            />
+            {feedback.practitionerName}
+          </CardDescription>
         ) : null}
       </CardHeader>
       <CardContent className="pt-0">

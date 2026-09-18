@@ -1,5 +1,7 @@
 import React, { Suspense } from "react"
 import { getSession } from "@/lib/auth"
+import { UserAvatar } from "@/components/user-avatar"
+import { avatarUrl } from "@/lib/avatars-shared"
 import { getSql } from "@/lib/db"
 import { redirect } from "next/navigation"
 import Link from "next/link"
@@ -43,9 +45,9 @@ export default async function PatientDetailPage({
   // linked" notice for them. Best-effort: never blocks the page.
   await markLinksSeen(sql, user.id, patientId).catch(() => {})
 
-  const patientRows = (await sql`SELECT id, name, email FROM users WHERE id = ${patientId}`) as Record<string, unknown>[]
+  const patientRows = (await sql`SELECT id, name, email, avatar_id::text AS avatar_id FROM users WHERE id = ${patientId}`) as Record<string, unknown>[]
   if (patientRows.length === 0) redirect("/practitioner/patients")
-  const patient = patientRows[0] as { name: string; email: string }
+  const patient = patientRows[0] as { name: string; email: string; avatar_id: string | null }
 
   const entries = (await sql`
     SELECT * FROM journal_entries
@@ -86,6 +88,12 @@ export default async function PatientDetailPage({
         >
           <ArrowLeft className="h-4 w-4" />
         </Link>
+        <UserAvatar
+          src={avatarUrl(patient.avatar_id)}
+          name={patient.name}
+          decorative
+          className="h-12 w-12 bg-primary/10 text-lg font-semibold text-primary"
+        />
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{patient.email}</p>

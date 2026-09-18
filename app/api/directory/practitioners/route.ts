@@ -24,7 +24,11 @@ export async function GET() {
   const rows = await sql`
     SELECT
       id, (user_id IS NOT NULL) AS has_account, full_name, specialty, bio, address, city, latitude, longitude,
-      phone, email, website, languages, experience_years, tags, avatar_url,
+      phone, email, website, languages, experience_years, tags,
+      -- Profile photo of the listing's account (practitioner photos are public;
+      -- /api/avatars/{id} enforces that). Seed listings have no account → null.
+      (SELECT '/api/avatars/' || u.avatar_id::text FROM users u
+         WHERE u.id = practitioners.user_id AND u.role = 'practitioner' AND u.avatar_id IS NOT NULL) AS photo_url,
       opening_hours, plan, is_verified
     FROM practitioners
     WHERE is_subscribed = true

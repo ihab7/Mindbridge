@@ -859,5 +859,20 @@
   "landing.reports.narrative1": "ملخّص زمني واضح",
   "landing.reports.narrative2": "أسلوب ودود، بلا مصطلحات تقنية",
   "landing.reports.narrative3": "توصيات عملية",
-  "landing.reports.narrative4": "يتضمّن موعد الاستشارة القادمة"
+  "landing.reports.narrative4": "يتضمّن موعد الاستشارة القادمة",
+  "avatar.title": "صورة الملف الشخصي",
+  "avatar.hint": "JPG أو PNG أو WebP · 5 ميغابايت كحد أقصى. تُقصّ على شكل مربع.",
+  "avatar.previewNote": "معاينة — لم تُحفظ بعد.",
+  "avatar.choose": "اختيار صورة",
+  "avatar.change": "تغيير الصورة",
+  "avatar.save": "حفظ",
+  "avatar.saving": "جارٍ الحفظ…",
+  "avatar.cancel": "إلغاء",
+  "avatar.remove": "إزالة الصورة",
+  "avatar.saved": "تم حفظ الصورة.",
+  "avatar.removed": "تمت إزالة الصورة.",
+  "avatar.errors.type": "صيغة غير مدعومة. استخدم JPG أو PNG أو WebP.",
+  "avatar.errors.tooLarge": "الملف كبير جدًا (5 ميغابايت كحد أقصى).",
+  "avatar.errors.unreadable": "تعذّرت قراءة هذه الصورة. جرّب ملفًا آخر.",
+  "avatar.errors.uploadFailed": "تعذّر حفظ الصورة. حاول مرة أخرى."
 }

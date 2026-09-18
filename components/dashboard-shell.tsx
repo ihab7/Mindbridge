@@ -43,11 +43,14 @@ export function DashboardShell({
   const router = useRouter()
   const t = useT()
   const links =
-    user.role === "patient" && hasActiveProgram
-      ? [...patientLinks, { href: "/patient/program", labelKey: "nav.myProgram", icon: Route }]
-      : user.role === "patient"
-        ? patientLinks
-        : practitionerLinks
+    user.role === "patient"
+      ? [
+          ...patientLinks,
+          ...(hasActiveProgram ? [{ href: "/patient/program", labelKey: "nav.myProgram", icon: Route }] : []),
+          // Same label, icon and position (last) as the practitioner's settings.
+          { href: "/patient/settings", labelKey: "nav.settings", icon: Settings },
+        ]
+      : practitionerLinks
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" })

@@ -175,6 +175,12 @@ body {
 .leaflet-marker-icon {
   cursor: pointer;
 }
+.leaflet-marker-icon .mb-avatar-pin {
+  transition: transform 0.15s ease;
+}
+.leaflet-marker-icon:hover .mb-avatar-pin {
+  transform: scale(1.12);
+}
 
 /* Practitioner location picker: OSM's standard tiles have no dark style, so
    darken the tile pane alone. Markers and controls sit in other panes and keep

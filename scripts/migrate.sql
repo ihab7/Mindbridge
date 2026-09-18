@@ -599,3 +599,29 @@ CREATE INDEX IF NOT EXISTS idx_patient_linking_codes_practitioner
 -- ─────────────────────────────────────────────────────────────────────────
 COMMENT ON COLUMN practitioners.phone IS 'Cabinet phone shown publicly on the directory listing. Not a personal number and never login data from users.';
 COMMENT ON COLUMN practitioners.email IS 'Cabinet contact email shown publicly on the directory listing. Must never be a copy of the account login email (users.email).';
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Profile photos, one per account (patients and practitioners alike).
+-- Stored IN the database, served only through GET /api/avatars/{id}, which
+-- applies the owner's rule at READ time: a practitioner's photo is public
+-- (the directory shows it to visitors), a patient's photo is visible only to
+-- the patient and their linked practitioner. There is no public file URL to
+-- guess or share. The id is an opaque uuid, never users.id.
+-- A new upload creates a new row and deletes the previous one, so a URL is
+-- immutable for its lifetime (safe to cache). byte_size is capped at 256 KB:
+-- the client sends a compressed 512 px square, the server re-validates it.
+-- Directory listings without an account (seed) keep their initials.
+-- practitioners.avatar_url stays in place, unused.
+-- ─────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS avatars (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content_type TEXT NOT NULL CHECK (content_type IN ('image/webp', 'image/jpeg', 'image/png')),
+  data BYTEA NOT NULL,
+  byte_size INTEGER NOT NULL CHECK (byte_size > 0 AND byte_size <= 262144),
+  width INTEGER NOT NULL CHECK (width BETWEEN 1 AND 1024),
+  height INTEGER NOT NULL CHECK (height BETWEEN 1 AND 1024),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_avatars_owner ON avatars (owner_user_id);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_id UUID REFERENCES avatars(id) ON DELETE SET NULL;

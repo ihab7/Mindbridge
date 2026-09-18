@@ -116,15 +116,23 @@ export async function listRecentCodes(sql: Sql, practitionerId: number, limit = 
 /** Codes redeemed since the practitioner last acknowledged them. */
 export async function listUnseenLinks(sql: Sql, practitionerId: number) {
   const rows = (await sql`
-    SELECT c.used_by_patient_id AS patient_id, u.name AS patient_name
+    SELECT c.used_by_patient_id AS patient_id, u.name AS patient_name,
+           -- Avatar only while the patient is still linked to this practitioner
+           -- (same rule as /api/avatars/{id}).
+           CASE WHEN pt.practitioner_id = c.practitioner_id THEN u.avatar_id::text END AS avatar_id
     FROM patient_linking_codes c
     JOIN users u ON u.id = c.used_by_patient_id
+    LEFT JOIN patients pt ON pt.user_id = c.used_by_patient_id
     WHERE c.practitioner_id = ${practitionerId}
       AND c.used_at IS NOT NULL
       AND c.practitioner_seen_at IS NULL
     ORDER BY c.used_at DESC
   `) as Record<string, unknown>[]
-  return rows.map((r) => ({ patientId: Number(r.patient_id), patientName: String(r.patient_name) }))
+  return rows.map((r) => ({
+    patientId: Number(r.patient_id),
+    patientName: String(r.patient_name),
+    avatarId: r.avatar_id == null ? null : String(r.avatar_id),
+  }))
 }
 
 /** Acknowledge new-link notices — all of them, or only the one for `patientId`. */

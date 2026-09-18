@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import useSWR from "swr"
+import { UserAvatar } from "@/components/user-avatar"
 import { Send, Loader2 } from "lucide-react"
 
 type Message = {
@@ -20,10 +21,13 @@ export function MessageThread({
   currentUserId,
   otherUserId,
   otherUserName,
+  otherUserAvatarUrl,
 }: {
   currentUserId: number
   otherUserId: number
   otherUserName: string
+  /** When given (practitioner side), the conversation header shows the patient's avatar. */
+  otherUserAvatarUrl?: string | null
 }) {
   const { data, mutate } = useSWR<{ messages: Message[] }>(
     `/api/messages/${otherUserId}`,
@@ -64,7 +68,15 @@ export function MessageThread({
 
   return (
     <div className="flex h-[calc(100vh-280px)] min-h-96 flex-col rounded-xl border border-border bg-card">
-      <div className="border-b border-border px-4 py-3">
+      <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
+        {otherUserAvatarUrl !== undefined && (
+          <UserAvatar
+            src={otherUserAvatarUrl}
+            name={otherUserName}
+            decorative
+            className="h-7 w-7 bg-primary/10 text-xs font-semibold text-primary"
+          />
+        )}
         <p className="text-sm font-medium text-card-foreground">{otherUserName}</p>
       </div>
 

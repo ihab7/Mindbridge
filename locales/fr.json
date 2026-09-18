@@ -811,5 +811,20 @@
   "settings.listing.email": "E-mail du cabinet",
   "settings.listing.requiredHint": "Au moins l'un des deux est obligatoire.",
   "settings.listing.noListing": "Aucune fiche annuaire n'est liée à ce compte.",
-  "settings.listing.saveError": "Impossible d'enregistrer. Réessayez."
+  "settings.listing.saveError": "Impossible d'enregistrer. Réessayez.",
+  "avatar.title": "Photo de profil",
+  "avatar.hint": "JPG, PNG ou WebP · 5 Mo maximum. Recadrée en carré.",
+  "avatar.previewNote": "Aperçu — pas encore enregistrée.",
+  "avatar.choose": "Choisir une photo",
+  "avatar.change": "Changer la photo",
+  "avatar.save": "Enregistrer",
+  "avatar.saving": "Enregistrement…",
+  "avatar.cancel": "Annuler",
+  "avatar.remove": "Retirer la photo",
+  "avatar.saved": "Photo enregistrée.",
+  "avatar.removed": "Photo retirée.",
+  "avatar.errors.type": "Format non pris en charge. Utilisez JPG, PNG ou WebP.",
+  "avatar.errors.tooLarge": "Fichier trop lourd (5 Mo maximum).",
+  "avatar.errors.unreadable": "Impossible de lire cette image. Essayez un autre fichier.",
+  "avatar.errors.uploadFailed": "Impossible d'enregistrer la photo. Réessayez."
 }

@@ -184,15 +184,15 @@ export async function getNextAppointment(sql: Sql, patientId: number, practition
 }
 
 /** Patients linked to this practitioner, for the report-generation picker. */
-export async function getPractitionerPatients(sql: Sql, practitionerId: number): Promise<{ id: number; name: string }[]> {
+export async function getPractitionerPatients(sql: Sql, practitionerId: number): Promise<{ id: number; name: string; avatarId: string | null }[]> {
   const rows = (await sql`
-    SELECT u.id, u.name
+    SELECT u.id, u.name, u.avatar_id::text AS avatar_id
     FROM users u
     JOIN patients p ON p.user_id = u.id
     WHERE p.practitioner_id = ${practitionerId}
     ORDER BY u.name ASC
   `) as Record<string, unknown>[]
-  return rows.map((r) => ({ id: Number(r.id), name: String(r.name) }))
+  return rows.map((r) => ({ id: Number(r.id), name: String(r.name), avatarId: r.avatar_id == null ? null : String(r.avatar_id) }))
 }
 
 /** One-line assigned-program summary, or null if the patient has none. */

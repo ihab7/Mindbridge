@@ -3,10 +3,13 @@
 import React, { useState } from "react"
 import { MessageThread } from "@/components/message-thread"
 import { MessageCircle } from "lucide-react"
+import { UserAvatar } from "@/components/user-avatar"
+import { avatarUrl } from "@/lib/avatars-shared"
 
 type Patient = {
   id: number
   name: string
+  avatar_id: string | null
   unread_count: number
 }
 
@@ -41,9 +44,12 @@ export function PractitionerMessaging({
                   : "text-card-foreground hover:bg-muted"
               }`}
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                {patient.name.charAt(0)}
-              </div>
+              <UserAvatar
+                src={avatarUrl(patient.avatar_id)}
+                name={patient.name}
+                decorative
+                className="h-8 w-8 bg-primary/10 text-xs font-semibold text-primary"
+              />
               <div className="flex-1">
                 <p className="font-medium">{patient.name}</p>
               </div>
@@ -79,6 +85,7 @@ export function PractitionerMessaging({
             currentUserId={currentUserId}
             otherUserId={selectedPatient.id}
             otherUserName={selectedPatient.name}
+            otherUserAvatarUrl={avatarUrl(selectedPatient.avatar_id)}
           />
         ) : (
           <div className="flex h-full items-center justify-center rounded-xl border border-border bg-card">

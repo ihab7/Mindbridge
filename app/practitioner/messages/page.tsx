@@ -16,7 +16,7 @@ export default async function PractitionerMessagesPage({
   const { patient: selectedPatientId } = await searchParams
 
   const patients = await sql`
-    SELECT u.id, u.name,
+    SELECT u.id, u.name, u.avatar_id::text AS avatar_id,
       (SELECT COUNT(*) FROM messages m WHERE m.sender_id = u.id AND m.receiver_id = ${user.id} AND m.read = false) as unread_count
     FROM users u
     JOIN patients p ON p.user_id = u.id

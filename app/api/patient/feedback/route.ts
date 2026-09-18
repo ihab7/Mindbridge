@@ -3,6 +3,7 @@ export const runtime = "nodejs"
 import { NextResponse } from "next/server"
 import { getSql } from "@/lib/db"
 import { getSession } from "@/lib/auth"
+import { avatarUrl } from "@/lib/avatars-shared"
 
 export async function GET() {
   const user = await getSession()
@@ -17,7 +18,8 @@ export async function GET() {
       pf.note,
       pf.next_appointment_at,
       pf.updated_at,
-      u.name as practitioner_name
+      u.name as practitioner_name,
+      u.avatar_id::text as practitioner_avatar_id
     FROM practitioner_feedback pf
     JOIN users u ON u.id = pf.practitioner_id
     WHERE pf.patient_id = ${user.id}
@@ -36,6 +38,8 @@ export async function GET() {
         nextAppointmentAt: row.next_appointment_at,
         updatedAt: row.updated_at,
         practitionerName: row.practitioner_name,
+        // Practitioner photos are public (see /api/avatars/{id}).
+        practitionerAvatarUrl: avatarUrl(row.practitioner_avatar_id as string | null),
       },
     },
     { status: 200 },

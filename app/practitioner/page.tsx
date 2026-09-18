@@ -1,5 +1,7 @@
 import React from "react"
 import { getSession } from "@/lib/auth"
+import { UserAvatar } from "@/components/user-avatar"
+import { avatarUrl } from "@/lib/avatars-shared"
 import { getSql } from "@/lib/db"
 import { redirect } from "next/navigation"
 import Link from "next/link"
@@ -18,7 +20,7 @@ export default async function PractitionerDashboard() {
   const { t } = await getServerI18n()
 
   const patients = await sql`
-    SELECT u.id, u.name,
+    SELECT u.id, u.name, u.avatar_id::text AS avatar_id,
       (SELECT mood FROM journal_entries j WHERE j.patient_id = u.id ORDER BY j.created_at DESC LIMIT 1) as latest_mood,
       (SELECT created_at FROM journal_entries j WHERE j.patient_id = u.id ORDER BY j.created_at DESC LIMIT 1) as last_entry_at
     FROM users u
@@ -159,9 +161,12 @@ export default async function PractitionerDashboard() {
                 href={`/practitioner/patients/${patient.id}`}
                 className="flex items-center gap-3 rounded-lg border border-border bg-background p-4 transition-colors hover:bg-muted"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                  {String(patient.name).charAt(0)}
-                </div>
+                <UserAvatar
+                  src={avatarUrl(patient.avatar_id as string | null)}
+                  name={String(patient.name)}
+                  decorative
+                  className="h-10 w-10 bg-primary/10 text-sm font-semibold text-primary"
+                />
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-medium text-card-foreground">

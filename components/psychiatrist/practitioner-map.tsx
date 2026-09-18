@@ -63,11 +63,63 @@ function createUserIcon() {
   })
 }
 
+const PIN_COLORS = { premium: "#f59e0b", basic: "#22c55e", selected: "#e63946" } as const
+
 const ICONS = {
-  premium: createIcon("#f59e0b"),
-  basic: createIcon("#22c55e"),
-  selected: createIcon("#e63946"),
+  premium: createIcon(PIN_COLORS.premium),
+  basic: createIcon(PIN_COLORS.basic),
+  selected: createIcon(PIN_COLORS.selected),
   user: createUserIcon(),
+}
+
+const PHOTO_PIN_SIZE = 36
+const PHOTO_PIN_SIZE_SELECTED = 44
+
+function escapeHtml(s: string) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!)
+}
+
+// Listings backed by a practitioner account: their profile photo in a circle
+// ringed with the usual plan colour (red when selected, and a bit larger).
+// Same fallback as <UserAvatar>, rebuilt as plain HTML because a Leaflet
+// DivIcon can't host a React component: the initial (name.charAt(0)) sits
+// underneath and the photo covers it; a photo that fails to load renders
+// nothing (alt=""), so the initial shows through. Seed listings without an
+// account keep the classic pin. Only practitioners are ever on this map.
+const photoIconCache = new Map<string, L.DivIcon>()
+function photoIcon(photoUrl: string | null, name: string, color: string, selected: boolean) {
+  const key = `${photoUrl ?? ""}|${name.charAt(0)}|${color}|${selected}`
+  const cached = photoIconCache.get(key)
+  if (cached) return cached
+  const size = selected ? PHOTO_PIN_SIZE_SELECTED : PHOTO_PIN_SIZE
+  const photo = photoUrl
+    ? `<img src="${escapeHtml(photoUrl)}" alt="" loading="lazy" decoding="async" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%;" />`
+    : ""
+  const icon = L.divIcon({
+    className: "",
+    html: `
+      <div class="mb-avatar-pin" style="
+        position: relative;
+        width: ${size}px;
+        height: ${size}px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: ${color};
+        color: #fff;
+        font: 600 ${selected ? 17 : 14}px/1 ui-sans-serif, system-ui, sans-serif;
+        border: 3px solid ${color};
+        box-shadow: 0 0 0 2px #fff, 0 3px 10px rgba(0,0,0,0.25);
+      "><span aria-hidden="true">${escapeHtml(name.charAt(0))}</span>${photo}</div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
+  })
+  photoIconCache.set(key, icon)
+  return icon
 }
 
 // Flies the map to a new center whenever it changes (e.g. selecting a card).
@@ -255,14 +307,23 @@ export function PractitionerMap({
           </>
         )}
 
-        {withCoords.map((p) => (
+        {withCoords.map((p) => {
+          const selected = p.id === selectedId
+          const color = selected ? PIN_COLORS.selected : p.plan === "premium" ? PIN_COLORS.premium : PIN_COLORS.basic
+          const icon = p.has_account
+            ? photoIcon(p.photo_url, p.full_name, color, selected)
+            : selected ? ICONS.selected : p.plan === "premium" ? ICONS.premium : ICONS.basic
+          const tooltipOffset: [number, number] = p.has_account
+            ? [0, -((selected ? PHOTO_PIN_SIZE_SELECTED : PHOTO_PIN_SIZE) / 2 + 4)]
+            : [0, -30]
+          return (
           <Marker
             key={p.id}
             position={[p.latitude, p.longitude]}
-            icon={p.id === selectedId ? ICONS.selected : p.plan === "premium" ? ICONS.premium : ICONS.basic}
+            icon={icon}
             eventHandlers={{ click: () => onSelect(p.id) }}
           >
-            <Tooltip className="mb-tooltip" direction="top" offset={[0, -30]} opacity={1}>
+            <Tooltip className="mb-tooltip" direction="top" offset={tooltipOffset} opacity={1}>
               {p.full_name} · {p.specialty}
             </Tooltip>
             <Popup>
@@ -286,7 +347,8 @@ export function PractitionerMap({
               </div>
             </Popup>
           </Marker>
-        ))}
+          )
+        })}
 
         <MapControls origin={origin} expanded={expanded} onToggleExpand={() => setExpanded((v) => !v)} />
       </MapContainer>

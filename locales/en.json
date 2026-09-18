@@ -858,5 +858,20 @@
   "landing.reports.narrative1": "Readable chronological summary",
   "landing.reports.narrative2": "Warm tone, no jargon",
   "landing.reports.narrative3": "Concrete recommendations",
-  "landing.reports.narrative4": "Next appointment included"
+  "landing.reports.narrative4": "Next appointment included",
+  "avatar.title": "Profile photo",
+  "avatar.hint": "JPG, PNG or WebP · 5 MB max. Cropped to a square.",
+  "avatar.previewNote": "Preview — not saved yet.",
+  "avatar.choose": "Choose a photo",
+  "avatar.change": "Change photo",
+  "avatar.save": "Save",
+  "avatar.saving": "Saving…",
+  "avatar.cancel": "Cancel",
+  "avatar.remove": "Remove photo",
+  "avatar.saved": "Photo saved.",
+  "avatar.removed": "Photo removed.",
+  "avatar.errors.type": "Unsupported format. Use JPG, PNG or WebP.",
+  "avatar.errors.tooLarge": "File too large (5 MB max).",
+  "avatar.errors.unreadable": "This image can't be read. Try another file.",
+  "avatar.errors.uploadFailed": "Couldn't save the photo. Please try again."
 }

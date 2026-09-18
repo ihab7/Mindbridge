@@ -21,7 +21,8 @@ export type Practitioner = {
   languages: string[]
   experience_years: number | null
   tags: string[]
-  avatar_url: string
+  /** Profile photo of the listing's practitioner account (public), or null → initial. */
+  photo_url: string | null
   opening_hours: OpeningHours
   plan: "basic" | "premium"
   is_verified: boolean
@@ -33,7 +34,8 @@ export type Practitioner = {
  * reads "Dr. Dr. …".
  */
 export function withoutDoctorPrefix(name: string): string {
-  return name.replace(/^s*dr.?s*/i, "").trim() || name
+  // \b: "Drew Smith" and "Driss" keep their names — only a standalone "Dr" title is dropped.
+  return name.replace(/^\s*dr\b\.?\s*/i, "").trim() || name
 }
 
 export type CabinetContactErrorCode = "cabinet_contact_required" | "invalid_cabinet_phone" | "invalid_cabinet_email"

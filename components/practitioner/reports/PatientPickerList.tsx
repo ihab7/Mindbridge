@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import { UserAvatar } from "@/components/user-avatar"
+import { avatarUrl } from "@/lib/avatars-shared"
 import { IconSearch } from "@tabler/icons-react"
 
-export type PickerPatient = { id: number; name: string }
+export type PickerPatient = { id: number; name: string; avatarId?: string | null }
 
 // Standalone component styled after the same list pattern the Messages page
 // uses (avatar circle + name, selectable rows) — built fresh rather than
@@ -52,9 +54,12 @@ export function PatientPickerList({
               selectedId === patient.id ? "bg-primary/10 text-primary" : "text-card-foreground hover:bg-muted"
             }`}
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-              {patient.name.charAt(0)}
-            </span>
+            <UserAvatar
+              src={avatarUrl(patient.avatarId)}
+              name={patient.name}
+              decorative
+              className="h-8 w-8 bg-primary/10 text-xs font-semibold text-primary"
+            />
             <span className="flex-1 truncate font-medium">{patient.name}</span>
           </button>
         ))}

@@ -5,6 +5,9 @@ import { getServerI18n } from "@/lib/server-i18n"
 import { logDbError } from "@/lib/db-errors"
 import { PractitionerProfileForm, type ProfileValues } from "@/components/practitioner/reports/PractitionerProfileForm"
 import { DirectoryListingContactForm } from "@/components/practitioner/directory-listing-contact-form"
+import { AvatarUpload } from "@/components/avatar-upload"
+import { getAvatarId } from "@/lib/avatars"
+import { avatarUrl } from "@/lib/avatars-shared"
 
 export default async function PractitionerSettingsPage() {
   const user = await getSession()
@@ -54,12 +57,21 @@ export default async function PractitionerSettingsPage() {
     logDbError(err, "practitioner-settings:listing")
   }
 
+  // Profile photo (one per account, shown to patients and in the directory).
+  let avatarId: string | null = null
+  try {
+    avatarId = await getAvatarId(sql, user.id)
+  } catch (err) {
+    logDbError(err, "practitioner-settings:avatar")
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-2">
       <div>
         <h1 className="text-2xl font-bold text-foreground">{t("settings.profile.title")}</h1>
         <p className="mt-1 text-muted-foreground">{t("settings.profile.subtitle")}</p>
       </div>
+      <AvatarUpload name={user.name} initialAvatarUrl={avatarUrl(avatarId)} endpoint="/api/practitioner/avatar" />
       <PractitionerProfileForm initial={initial} />
       <DirectoryListingContactForm initial={listing} />
     </div>

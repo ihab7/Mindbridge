@@ -4,6 +4,7 @@ import Link from "next/link"
 import { CheckCircle2, MapPin, Share2, Globe, Users } from "lucide-react"
 import type { PractitionerWithDistance } from "@/hooks/use-practitioners"
 import { useT } from "@/components/i18n-provider"
+import { UserAvatar } from "@/components/user-avatar"
 
 function SectionLabel({ icon, label }: { icon: string; label: string }) {
   return (
@@ -68,13 +69,12 @@ export function PractitionerProfile({
         }`}
       >
         <div className="flex items-start gap-4">
-          <div
-            className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-xl font-semibold text-white ${
-              isPremium ? "bg-accent" : "bg-primary"
-            }`}
-          >
-            {practitioner.full_name.charAt(0)}
-          </div>
+          <UserAvatar
+            src={practitioner.photo_url}
+            name={practitioner.full_name}
+            decorative
+            className={`h-14 w-14 text-xl font-semibold text-white ${isPremium ? "bg-accent" : "bg-primary"}`}
+          />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-lg font-bold text-foreground">{practitioner.full_name}</h3>

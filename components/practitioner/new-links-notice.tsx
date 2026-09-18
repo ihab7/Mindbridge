@@ -5,13 +5,15 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { UserCheck } from "lucide-react"
 import { useT } from "@/components/i18n-provider"
+import { UserAvatar } from "@/components/user-avatar"
+import { avatarUrl } from "@/lib/avatars-shared"
 
 /**
  * "N new patients linked": patients who redeemed one of this practitioner's
  * codes since the notice was last dismissed. Loaded with the Patients page —
  * no polling needed. Opening a patient's page also clears that patient's entry.
  */
-export function NewLinksNotice({ links }: { links: { patientId: number; patientName: string }[] }) {
+export function NewLinksNotice({ links }: { links: { patientId: number; patientName: string; avatarId?: string | null }[] }) {
   const t = useT()
   const router = useRouter()
   const [dismissing, setDismissing] = useState(false)
@@ -38,7 +40,13 @@ export function NewLinksNotice({ links }: { links: { patientId: number; patientN
         </p>
         <p className="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-sm">
           {links.map((l) => (
-            <Link key={l.patientId} href={`/practitioner/patients/${l.patientId}`} className="font-medium text-primary hover:underline">
+            <Link key={l.patientId} href={`/practitioner/patients/${l.patientId}`} className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline">
+              <UserAvatar
+                src={avatarUrl(l.avatarId)}
+                name={l.patientName}
+                decorative
+                className="h-5 w-5 bg-primary/10 text-[10px] font-semibold text-primary"
+              />
               {l.patientName}
             </Link>
           ))}

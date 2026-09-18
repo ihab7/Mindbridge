@@ -1,4 +1,6 @@
 import { getSession } from "@/lib/auth"
+import { UserAvatar } from "@/components/user-avatar"
+import { avatarUrl } from "@/lib/avatars-shared"
 import { getSql } from "@/lib/db"
 import { redirect } from "next/navigation"
 import Link from "next/link"
@@ -32,7 +34,7 @@ export default async function PatientsListPage({
   const sql = getSql()
 
   const patients = await sql`
-    SELECT u.id, u.name, u.email, p.created_at as enrolled_at,
+    SELECT u.id, u.name, u.email, u.avatar_id::text AS avatar_id, p.created_at as enrolled_at,
       (SELECT COUNT(*) FROM journal_entries j WHERE j.patient_id = u.id) as entry_count,
       (SELECT COUNT(*) FROM alerts a WHERE a.patient_id = u.id AND a.status = 'open') as open_alerts,
       (SELECT mood FROM journal_entries j WHERE j.patient_id = u.id ORDER BY j.created_at DESC LIMIT 1) as latest_mood,
@@ -120,9 +122,12 @@ export default async function PatientsListPage({
                 hasAlerts ? "border-destructive/30" : "border-border"
               }`}
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
-                {String(patient.name).charAt(0)}
-              </div>
+              <UserAvatar
+                src={avatarUrl(patient.avatar_id as string | null)}
+                name={String(patient.name)}
+                decorative
+                className="h-12 w-12 bg-primary/10 text-lg font-semibold text-primary"
+              />
               <div className="flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium text-card-foreground">{String(patient.name)}</p>
