@@ -41,7 +41,7 @@ export default async function AlertsPage() {
       <AlertList alerts={openAlerts} showPatientName />
 
       {resolvedAlerts.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="mb-card rounded-xl border border-border bg-card p-6">
           <div className="mb-4 flex items-center gap-2">
             <Clock className="h-5 w-5 text-muted-foreground" />
             <h3 className="text-lg font-semibold text-card-foreground">

@@ -53,7 +53,7 @@ export function AlertList({ alerts: initialAlerts, showPatientName = false }: { 
 
   if (alerts.length === 0) {
     return (
-      <div className="rounded-xl border border-border bg-card p-8 text-center">
+      <div className="mb-card rounded-xl border border-border bg-card p-8 text-center">
         <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-primary" />
         <p className="font-medium text-card-foreground">All clear</p>
         <p className="mt-1 text-sm text-muted-foreground">No open alerts</p>
@@ -62,7 +62,7 @@ export function AlertList({ alerts: initialAlerts, showPatientName = false }: { 
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="mb-card rounded-xl border border-border bg-card p-6">
       <div className="mb-4 flex items-center gap-2">
         <Bell className="h-5 w-5 text-destructive" />
         <h3 className="text-lg font-semibold text-card-foreground">

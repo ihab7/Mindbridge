@@ -131,7 +131,7 @@ export function VideoCallCard({ patientName }: { patientName: string }) {
 
       {!prominent &&
         upcoming.map((c) => (
-          <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-4">
+          <div key={c.id} className="mb-card flex items-center gap-3 rounded-xl border border-border bg-card p-4">
             <CalendarClock className="h-5 w-5 shrink-0 text-muted-foreground" />
             <div>
               <p className="text-sm font-medium text-foreground">{t("video.card.scheduledTitle")}</p>

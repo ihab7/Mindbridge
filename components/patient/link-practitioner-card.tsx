@@ -55,7 +55,7 @@ export function LinkPractitionerCard() {
 
   if (linkedTo) {
     return (
-      <div className="mx-auto w-full max-w-lg rounded-xl border border-border bg-card p-6 sm:p-8">
+      <div className="mb-card mx-auto w-full max-w-lg rounded-xl border border-border bg-card p-6 sm:p-8">
         <LinkedConfirmation
           practitioner={linkedTo}
           pending={continuing}
@@ -69,7 +69,7 @@ export function LinkPractitionerCard() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg rounded-xl border border-border bg-card p-6 sm:p-8">
+    <div className="mb-card mx-auto w-full max-w-lg rounded-xl border border-border bg-card p-6 sm:p-8">
       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
         <Link2 className="h-5 w-5 text-primary" />
       </span>

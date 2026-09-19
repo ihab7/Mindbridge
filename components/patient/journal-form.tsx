@@ -263,7 +263,7 @@ export function JournalForm({ todayEntry = null }: { todayEntry?: TodayEntry | n
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="mb-card rounded-xl border border-border bg-card p-6">
       <h2 className="mb-1 text-lg font-semibold text-card-foreground">{t("patient.checkin.title")}</h2>
       <p className="mb-5 text-sm text-muted-foreground">{t("patient.checkin.subtitle")}</p>
 

@@ -59,7 +59,7 @@ export function ReportsHubClient({
           />
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="mb-card rounded-xl border border-border bg-card p-5">
           <h3 className="text-base font-medium text-card-foreground">{t("report.hub.recentTitle")}</h3>
           {reports.length > 0 ? (
             <ul className="mt-3 divide-y divide-border/60">

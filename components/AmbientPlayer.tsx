@@ -253,7 +253,7 @@ export function AmbientPlayer({ defaultSound, defaultTimer }: Props = {}) {
   const progressPct  = timerGoal ? Math.min((elapsed / (timerGoal * 60)) * 100, 100) : 0
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="mb-card rounded-xl border border-border bg-card p-5">
       <style>{`
         @keyframes ambientWave {
           0%, 100% { height: 3px; }

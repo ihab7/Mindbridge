@@ -21,7 +21,7 @@ export function MedicationChart({ entries }: { entries: Entry[] }) {
 
   if (data.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-xl border border-border bg-card">
+      <div className="mb-card flex h-48 items-center justify-center rounded-xl border border-border bg-card">
         <p className="text-sm text-muted-foreground">{t("patient.charts.sleepMedication.empty")}</p>
       </div>
     )
@@ -32,7 +32,7 @@ export function MedicationChart({ entries }: { entries: Entry[] }) {
     : 0
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="mb-card rounded-xl border border-border bg-card p-6">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h3 className="mb-1 text-base font-semibold text-card-foreground">{t("patient.charts.sleepMedication.title")}</h3>

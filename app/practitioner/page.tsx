@@ -96,7 +96,7 @@ export default async function PractitionerDashboard() {
 
       {/* Open Alerts */}
       {openAlerts.length > 0 && (
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="mb-card rounded-xl border border-border bg-card p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-card-foreground">Active Alerts</h2>
             <Link
@@ -144,7 +144,7 @@ export default async function PractitionerDashboard() {
       )}
 
       {/* Quick Patient Overview */}
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="mb-card rounded-xl border border-border bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-card-foreground">Patients</h2>
           <Link

@@ -208,7 +208,7 @@ export function SessionPrepCard({
   const showCompact = mode === "compact" || transitioning
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="mb-card rounded-xl border border-border bg-card p-6">
       <style>{`
         .sessionPrepStack {
           display: grid;

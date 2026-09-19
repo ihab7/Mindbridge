@@ -100,7 +100,7 @@ export function ProgramReviewScreen({
 
   if (load.status === "error") {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-card py-16 text-center">
+      <div className="mb-card flex flex-col items-center gap-3 rounded-xl border border-border bg-card py-16 text-center">
         <p className="text-sm text-muted-foreground">{t("practitioner.review.errorTitle")}</p>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={() => void proposal.redraft()}>

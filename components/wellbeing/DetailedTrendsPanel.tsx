@@ -57,7 +57,7 @@ export function DetailedTrendsPanel({ entries }: { entries: Entry[] }) {
   }))
 
   return (
-    <div className="rounded-xl border border-border bg-card">
+    <div className="mb-card rounded-xl border border-border bg-card">
       <button
         type="button"
         onClick={toggle}

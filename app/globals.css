@@ -191,3 +191,89 @@ body {
 .mb-picker-map.leaflet-container {
   background: hsl(var(--muted));
 }
+
+/* Practitioner "patient progress" section. Restrained semantic colours:
+   mood = MindBridge teal, anxiety = a soft violet (distinct, never alarming),
+   attention = a muted amber for "worth a look" — no saturated red/green.
+   Scoped to the section so nothing else inherits them. */
+.mb-progress {
+  --progress-mood: var(--primary);
+  --progress-anxiety: 256 38% 55%;
+  --progress-attention: 30 70% 40%;
+}
+.dark .mb-progress {
+  --progress-anxiety: 256 55% 74%;
+  --progress-attention: 36 78% 62%;
+}
+
+/* Card surface: a calm, premium "light glass" backdrop for content cards.
+   Two diffuse halos centred just outside the corners (only their soft fringe enters the card) (cool top-right, warm bottom-left),
+   drawn with CSS gradients on pseudo-elements — no images, no patterns.
+   Each halo is 2–3 offset translucent ellipses, which reads as a soft
+   organic form rather than a circle. They fade out well before the centre
+   and stay at a few percent opacity, so text, numbers and charts keep their
+   full contrast. Fixed px sizes: the halos stay corner-sized on wide or tall cards.
+   isolation keeps the z-index:-1 layers above the card's own background and
+   below its content. */
+@layer components {
+  .mb-card {
+    --surface-cool: 176 42% 52%;
+    --surface-mist: 250 45% 72%;
+    --surface-warm: 30 75% 72%;
+    --surface-alpha: 0.22;
+    position: relative;
+    isolation: isolate;
+    box-shadow:
+      0 1px 2px hsl(var(--foreground) / 0.04),
+      0 10px 28px -16px hsl(var(--foreground) / 0.12),
+      inset 0 1px 0 hsl(0 0% 100% / 0.75);
+  }
+  .dark .mb-card {
+    --surface-cool: 175 50% 45%;
+    --surface-mist: 250 45% 65%;
+    --surface-warm: 32 70% 55%;
+    --surface-alpha: 0.14;
+    box-shadow:
+      0 1px 2px hsl(0 0% 0% / 0.25),
+      0 12px 32px -18px hsl(0 0% 0% / 0.5),
+      inset 0 1px 0 hsl(0 0% 100% / 0.04);
+  }
+  .mb-card::before,
+  .mb-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  /* Top-right: cool teal halo with a lavender veil overlapping it. */
+  .mb-card::before {
+    background:
+      radial-gradient(ellipse 300px 180px at calc(100% + 40px) -40px, hsl(var(--surface-cool) / var(--surface-alpha)), transparent 72%),
+      radial-gradient(ellipse 190px 110px at calc(100% - 70px) -30px, hsl(var(--surface-mist) / calc(var(--surface-alpha) * 0.8)), transparent 70%);
+  }
+  /* Bottom-left: warm organic form, plus an almost invisible diagonal wash
+     that ties the two corners together. */
+  .mb-card::after {
+    background:
+      radial-gradient(ellipse 280px 170px at -40px calc(100% + 40px), hsl(var(--surface-warm) / calc(var(--surface-alpha) * 1.15)), transparent 72%),
+      radial-gradient(ellipse 170px 100px at 60px calc(100% + 30px), hsl(var(--surface-cool) / calc(var(--surface-alpha) * 0.55)), transparent 70%),
+      linear-gradient(135deg, transparent 55%, hsl(var(--surface-mist) / calc(var(--surface-alpha) * 0.18)));
+  }
+  @media (prefers-contrast: more) {
+    .mb-card::before,
+    .mb-card::after {
+      display: none;
+    }
+  }
+  @media print {
+    .mb-card {
+      box-shadow: none;
+    }
+    .mb-card::before,
+    .mb-card::after {
+      display: none;
+    }
+  }
+}

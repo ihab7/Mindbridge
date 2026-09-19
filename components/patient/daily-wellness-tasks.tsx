@@ -60,7 +60,7 @@ export function DailyWellnessTasks({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
+    <div className="mb-card rounded-2xl border border-border bg-card p-6 sm:p-8">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-card-foreground">{t("patient.wellness.title")}</h2>

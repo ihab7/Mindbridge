@@ -45,7 +45,7 @@ export function ProgramWidget() {
   const next = nextSession(program, progress)
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
+    <div className="mb-card rounded-2xl border border-border bg-card p-5">
       <p className="text-xs font-semibold uppercase tracking-widest text-primary">{t("program.widget.label")}</p>
       <h3 className="mt-1 text-base font-semibold text-card-foreground">{program.title[locale]}</h3>
 

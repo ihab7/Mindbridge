@@ -47,7 +47,7 @@ export function WeeklyWellbeing({
   // Zero entries ever: a single gentle invitation, no weather row.
   if (!summary.hasAnyData) {
     return (
-      <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-card p-5">
+      <div className="mb-card flex flex-col items-start gap-3 rounded-xl border border-border bg-card p-5">
         <IconNotes size={22} className="text-primary" stroke={1.75} aria-hidden />
         <p className="text-[15px] font-medium text-card-foreground">
           {t("wellbeing.empty.zero.title")}

@@ -29,7 +29,7 @@ export async function ReportsSection({
   const dateFmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" })
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="mb-card rounded-xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-medium text-card-foreground">{t("report.section.listTitle")}</h3>

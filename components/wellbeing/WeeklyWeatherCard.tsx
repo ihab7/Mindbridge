@@ -32,7 +32,7 @@ export function WeeklyWeatherCard({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="mb-card rounded-xl border border-border bg-card p-5">
       <p className="text-[13px] text-muted-foreground">{t("wellbeing.label")}</p>
       <h3 className="mt-1 text-lg font-medium leading-[1.5] text-card-foreground">
         {summary.headline}

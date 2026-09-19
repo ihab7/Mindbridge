@@ -80,7 +80,7 @@ export function ProgramPageClient() {
 
   if (!data || !data.hasAssignment) {
     return (
-      <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-card py-16 text-center">
+      <div className="mb-card flex flex-col items-center gap-2 rounded-2xl border border-border bg-card py-16 text-center">
         <ClipboardList className="h-8 w-8 text-muted-foreground/50" />
         <p className="text-sm text-muted-foreground">{t("program.empty")}</p>
       </div>

@@ -37,7 +37,7 @@ export function LibraryPicker({
   }, [sessions, category, query, locale])
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="mb-card rounded-xl border border-border bg-card p-4">
       <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {t("practitioner.review.libraryTitle")}
       </p>

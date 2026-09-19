@@ -42,7 +42,7 @@ export function SleepNudgeBanner() {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/60"
+      className="mb-card flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-colors hover:bg-muted/60"
     >
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
         <Moon className="h-4 w-4" aria-hidden="true" />

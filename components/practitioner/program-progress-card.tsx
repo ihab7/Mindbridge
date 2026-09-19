@@ -59,7 +59,7 @@ export function ProgramProgressCard({ patientId, patientName }: { patientId: num
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+      <div className="mb-card flex items-center gap-2 rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         {t("common.loading")}
       </div>
@@ -68,7 +68,7 @@ export function ProgramProgressCard({ patientId, patientName }: { patientId: num
 
   if (!data?.assignment) {
     return (
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="mb-card rounded-xl border border-border bg-card p-6">
         <div className="flex flex-col items-center gap-2 py-6 text-center">
           <ClipboardList className="h-8 w-8 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">{t("program.practitioner.noAssignment", { name: patientName })}</p>
@@ -102,7 +102,7 @@ export function ProgramProgressCard({ patientId, patientName }: { patientId: num
     trend === "up" ? t("program.stats.trendUp") : trend === "down" ? t("program.stats.trendDown") : t("program.stats.trendFlat")
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="mb-card rounded-xl border border-border bg-card p-6">
       <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">

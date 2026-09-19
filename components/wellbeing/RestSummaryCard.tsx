@@ -23,7 +23,7 @@ export function RestSummaryCard({ summary }: { summary: WeeklySummary }) {
       })
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
+    <div className="mb-card rounded-xl border border-border bg-card p-5">
       <p className="text-[13px] text-muted-foreground">{t("wellbeing.rest.label")}</p>
       <div className="mt-2 flex items-start gap-2">
         <IconMoon size={20} className="mt-0.5 shrink-0 text-muted-foreground" stroke={1.75} aria-hidden />

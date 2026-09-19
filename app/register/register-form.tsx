@@ -103,7 +103,7 @@ export function RegisterForm({ practitionerContext = null }: { practitionerConte
           <p className="mt-2 text-muted-foreground">{t("auth.register.subtitle")}</p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="mb-card rounded-xl border border-border bg-card p-6">
           {error && (
             <div className="mb-4 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {error}

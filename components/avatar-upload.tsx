@@ -158,7 +158,7 @@ export function AvatarUpload({
   const shown = draft?.previewUrl ?? current
 
   return (
-    <section aria-labelledby="avatar-upload-title" className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:flex-row sm:items-center">
+    <section aria-labelledby="avatar-upload-title" className="mb-card flex flex-col gap-4 rounded-xl border border-border bg-card p-5 sm:flex-row sm:items-center">
       <button
         type="button"
         onClick={pick}

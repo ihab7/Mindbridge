@@ -29,7 +29,7 @@ export function ProgramHero({
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6">
+    <div className="mb-card rounded-2xl border border-border bg-card p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold text-card-foreground">{program.title[locale]}</h1>

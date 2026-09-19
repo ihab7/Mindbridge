@@ -53,7 +53,7 @@ export function DirectoryListingContactForm({ initial }: { initial: { phone: str
   }
 
   return (
-    <section aria-labelledby="listing-contact-title" className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
+    <section aria-labelledby="listing-contact-title" className="mb-card flex flex-col gap-4 rounded-xl border border-border bg-card p-5">
       <div className="flex items-start gap-3">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
           <IconWorld size={18} stroke={1.75} className="text-primary" aria-hidden />

@@ -6,8 +6,8 @@ import { getSql } from "@/lib/db"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Brain, Moon, Pill, TrendingUp, MessageCircle } from "lucide-react"
-import { WellbeingPanelServer } from "@/components/practitioner/wellbeing-panel-server"
-import { WellbeingPanelSkeleton } from "@/components/practitioner/WellbeingPanel"
+import { PatientProgressServer } from "@/components/practitioner/progress/patient-progress-server"
+import { PatientProgressSkeleton } from "@/components/practitioner/progress/patient-progress"
 import { ReportsSection } from "@/components/practitioner/reports/ReportsSection"
 import { AlertList } from "@/components/practitioner/alert-list"
 import { MentalStatusBadge } from "@/components/mental-status-badge"
@@ -16,10 +16,6 @@ import { ClinicalRecordCard } from "@/components/practitioner/clinical-record-ca
 import { VideoConsultationDialog } from "@/components/practitioner/video-consultation-dialog"
 import { SessionPrepViewer } from "@/components/practitioner/session-prep-viewer"
 import { ProgramProgressCard } from "@/components/practitioner/program-progress-card"
-import {
-  parseSideEffectsFromDb,
-  sideEffectsKeyToLabel,
-} from "@/lib/side-effects"
 import { markLinksSeen } from "@/lib/linking/codes"
 
 export default async function PatientDetailPage({
@@ -80,7 +76,9 @@ export default async function PatientDetailPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
+      {/* Wraps on phones so the action buttons never widen the page (which would
+          also stretch fixed overlays such as the day-detail sheet). */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <Link
           href="/practitioner/patients"
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-muted"
@@ -94,18 +92,20 @@ export default async function PatientDetailPage({
           decorative
           className="h-12 w-12 bg-primary/10 text-lg font-semibold text-primary"
         />
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground">{patient.name}</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">{patient.email}</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-2xl font-bold text-foreground">{patient.name}</h1>
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">{patient.email}</p>
         </div>
-        <VideoConsultationDialog patientId={patientId} patientName={patient.name} />
-        <Link
-          href={`/practitioner/messages?patient=${patientId}`}
-          className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <MessageCircle className="h-4 w-4" />
-          Message
-        </Link>
+        <div className="flex items-center gap-3">
+          <VideoConsultationDialog patientId={patientId} patientName={patient.name} />
+          <Link
+            href={`/practitioner/messages?patient=${patientId}`}
+            className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Message
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
@@ -137,13 +137,9 @@ export default async function PatientDetailPage({
         <ClinicalRecordCard patientId={patientId} />
       </div>
 
-      {/* Wellbeing panel — scannable clinical summary over full-precision chart */}
-      <Suspense fallback={<WellbeingPanelSkeleton />}>
-        <WellbeingPanelServer
-          patientId={patientId}
-          patientName={patient.name}
-          messageHref={`/practitioner/messages?patient=${patientId}`}
-        />
+      {/* Patient progress — current state, trend, what changed, signals, day by day */}
+      <Suspense fallback={<PatientProgressSkeleton />}>
+        <PatientProgressServer patientId={patientId} messageHref={`/practitioner/messages?patient=${patientId}`} />
       </Suspense>
 
       {/* Printable clinical consultation letters */}
@@ -155,91 +151,6 @@ export default async function PatientDetailPage({
       {openAlerts.length > 0 && (
         <AlertList alerts={openAlerts} />
       )}
-
-      {/* Recent Entries Table */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="mb-4 text-lg font-semibold text-card-foreground">Journal Entries</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left">
-                <th className="pb-3 pr-4 font-medium text-muted-foreground">Date</th>
-                <th className="pb-3 pr-4 font-medium text-muted-foreground">Mood</th>
-                <th className="pb-3 pr-4 font-medium text-muted-foreground">Anxiety</th>
-                <th className="pb-3 pr-4 font-medium text-muted-foreground">Sleep</th>
-                <th className="pb-3 pr-4 font-medium text-muted-foreground">Med</th>
-                <th className="pb-3 pr-4 font-medium text-muted-foreground">Side effects</th>
-                <th className="pb-3 font-medium text-muted-foreground">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.slice(0, 14).map((entry: Record<string, unknown>) => {
-                const mood = Number(entry.mood)
-                const moodClass = mood <= 3 ? "text-destructive" : mood <= 5 ? "text-amber-600 dark:text-amber-400" : "text-primary"
-
-                const parsedSideEffects = parseSideEffectsFromDb(
-                  entry.side_effects,
-                  entry.side_effects_other,
-                  entry.side_effects_legacy
-                )
-
-                return (
-                  <tr key={String(entry.id)} className="border-b border-border last:border-0">
-                    <td className="py-3 pr-4 text-card-foreground">
-                      {new Date(String(entry.created_at)).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </td>
-                    <td className={`py-3 pr-4 font-medium ${moodClass}`}>{mood}/10</td>
-                    <td className="py-3 pr-4 text-card-foreground">{String(entry.anxiety)}/10</td>
-                    <td className="py-3 pr-4 text-card-foreground">{String(entry.sleep_hours)}h</td>
-                    <td className="py-3 pr-4">
-                      <span className={entry.medication_taken ? "text-primary" : "text-destructive"}>
-                        {entry.medication_taken ? "Yes" : "No"}
-                      </span>
-                    </td>
-                    <td className="py-3 pr-4 text-muted-foreground">
-                      {parsedSideEffects.sideEffects?.length ? (
-                        <div className="flex flex-wrap gap-1.5">
-                          {parsedSideEffects.sideEffects.map((k) => {
-                            if (k === "other") {
-                              const detail = parsedSideEffects.sideEffectsOther?.trim()
-                              return (
-                                <span
-                                  key={k}
-                                  className="inline-flex items-center rounded-md border border-border bg-background px-2 py-0.5 text-xs text-card-foreground"
-                                  title={detail ? `Other: ${detail}` : "Other"}
-                                >
-                                  {detail ? `Other: ${detail}` : "Other"}
-                                </span>
-                              )
-                            }
-
-                            return (
-                              <span
-                                key={k}
-                                className="inline-flex items-center rounded-md border border-border bg-background px-2 py-0.5 text-xs text-card-foreground"
-                              >
-                                {sideEffectsKeyToLabel(k)}
-                              </span>
-                            )
-                          })}
-                        </div>
-                      ) : (
-                        <span>Not reported</span>
-                      )}
-                    </td>
-                    <td className="max-w-xs truncate py-3 text-muted-foreground">
-                      {String(entry.challenges || entry.achievements || "-")}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   )
 }
@@ -254,7 +165,7 @@ function MiniStat({
   value: string
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="mb-card rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-2 text-muted-foreground">
         {icon}
         <span className="text-xs">{label}</span>

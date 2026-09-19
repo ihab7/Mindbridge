@@ -28,7 +28,7 @@ export function PractitionerProfile({
   const t = useT()
   if (!practitioner) {
     return (
-      <div className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-xl border border-border bg-card p-8 text-center">
+      <div className="mb-card flex h-full min-h-[320px] flex-col items-center justify-center rounded-xl border border-border bg-card p-8 text-center">
         <Users className="mb-3 h-8 w-8 text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
           ← Select a practitioner from the list to view their full profile
@@ -61,7 +61,7 @@ export function PractitionerProfile({
   }
 
   return (
-    <div className="flex flex-col gap-6 rounded-xl border border-border bg-card p-6">
+    <div className="mb-card flex flex-col gap-6 rounded-xl border border-border bg-card p-6">
       {/* Header */}
       <div
         className={`-m-6 mb-0 rounded-t-xl border-t-4 p-6 ${

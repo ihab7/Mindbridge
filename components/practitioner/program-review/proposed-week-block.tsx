@@ -35,7 +35,7 @@ export function ProposedWeekBlock({
     .reduce((sum, s) => sum + (findLibrarySession(s.id)?.durationMin ?? 0), 0)
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="mb-card rounded-xl border border-border bg-card p-4">
       <div className="mb-2 flex items-center gap-3">
         <span
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-semibold text-white"

@@ -21,14 +21,14 @@ export function MoodChart({ entries }: { entries: Entry[] }) {
 
   if (data.length === 0) {
     return (
-      <div className="flex h-48 items-center justify-center rounded-xl border border-border bg-card">
+      <div className="mb-card flex h-48 items-center justify-center rounded-xl border border-border bg-card">
         <p className="text-sm text-muted-foreground">{t("patient.charts.mood.empty")}</p>
       </div>
     )
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6">
+    <div className="mb-card rounded-xl border border-border bg-card p-6">
       <h3 className="mb-1 text-base font-semibold text-card-foreground">{t("patient.charts.mood.title")}</h3>
       <p className="mb-4 text-xs text-muted-foreground">{t("patient.charts.lastEntries", { count: data.length })}</p>
       <div className="h-52">

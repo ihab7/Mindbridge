@@ -14,7 +14,7 @@ export function ConsultationReportWidget() {
   return (
     <Link
       href="/practitioner/reports/new"
-      className="flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-6 transition-colors hover:bg-muted sm:flex-row sm:items-center"
+      className="mb-card flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-6 transition-colors hover:bg-muted sm:flex-row sm:items-center"
     >
       <div className="flex items-start gap-4">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">

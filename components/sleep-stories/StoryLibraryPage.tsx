@@ -116,7 +116,7 @@ export function StoryLibraryPage() {
       </div>
 
       {isEmpty && (
-        <div className="rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+        <div className="mb-card rounded-xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
           {t("sleepStories.library.empty")}
         </div>
       )}
