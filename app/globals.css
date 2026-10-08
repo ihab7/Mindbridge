@@ -277,3 +277,74 @@ body {
     }
   }
 }
+
+
+/* Patient dashboard motion. CSS only, transform/opacity only, and every rule
+   is switched off under prefers-reduced-motion. Nothing loops except the
+   mascot's breathing, which is only applied to the full-size variant. */
+@layer components {
+  .mb-press,
+  .mb-lift {
+    transition: transform 160ms ease, background-color 160ms ease;
+  }
+  /* Lift only where hovering is real (mouse/trackpad), never on touch. */
+  @media (hover: hover) and (pointer: fine) {
+    .mb-lift:hover {
+      transform: translateY(-2px);
+    }
+  }
+  /* Declared after the lift so a pressed, hovered element shows the press. */
+  .mb-press:active {
+    transform: scale(0.97);
+  }
+
+  /* Mascot idle: ≤2% scale over ~4s, anchored at the feet. */
+  .mb-breathe {
+    transform-origin: 50% 88%;
+    animation: mb-breathe 4s ease-in-out infinite;
+  }
+  @keyframes mb-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+  }
+
+  /* One-shot entrance (~600ms) used when a check-in has just been saved. */
+  .mb-enter {
+    animation: mb-enter 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+  @keyframes mb-enter {
+    from { opacity: 0; transform: translateY(6px) scale(0.92); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* Check mark drawing itself in, once. Works on any stroked icon path. */
+  .mb-draw path,
+  .mb-draw polyline {
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    animation: mb-draw 600ms ease-out 80ms forwards;
+  }
+  @keyframes mb-draw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mb-press,
+    .mb-lift {
+      transition: none;
+    }
+    .mb-press:active,
+    .mb-lift:hover {
+      transform: none;
+    }
+    .mb-breathe,
+    .mb-enter {
+      animation: none;
+    }
+    .mb-draw path,
+    .mb-draw polyline {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+  }
+}

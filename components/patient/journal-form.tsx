@@ -248,16 +248,20 @@ export function JournalForm({ todayEntry = null }: { todayEntry?: TodayEntry | n
             openForm()
           }
         }}
-        className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-card p-5 transition-colors hover:bg-muted/50"
+        // Stacked (icons row, then text) so it reads cleanly in the ~170px
+        // dashboard column on phones, matching the "start check-in" card.
+        className="mb-card mb-press mb-lift flex h-full cursor-pointer flex-col gap-2 rounded-2xl border border-border bg-card p-4 outline-none ring-ring hover:bg-muted/40 focus-visible:ring-2"
       >
-        <IconCircleCheck size={22} stroke={1.75} className="shrink-0 text-primary" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-medium text-card-foreground">{t("patient.checkin.savedTitle")}</p>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
-            {t("patient.checkin.savedSummary", { mood: savedSummary.mood, sleep: savedSummary.sleepHours })}
-          </p>
-        </div>
-        <IconPencil size={18} stroke={1.75} className="shrink-0 text-muted-foreground" aria-hidden />
+        <span className="flex w-full items-center justify-between gap-2">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <IconCircleCheck size={20} stroke={1.75} aria-hidden />
+          </span>
+          <IconPencil size={16} stroke={1.75} className="shrink-0 text-muted-foreground" aria-hidden />
+        </span>
+        <p className="text-[15px] font-semibold leading-snug text-card-foreground">{t("patient.checkin.savedTitle")}</p>
+        <p className="text-[13px] leading-snug text-muted-foreground">
+          {t("patient.checkin.savedSummary", { mood: savedSummary.mood, sleep: savedSummary.sleepHours })}
+        </p>
       </div>
     )
   }

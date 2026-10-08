@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { IconChevronDown, IconCheck, IconMinus } from "@tabler/icons-react"
 import { useI18n, useT } from "@/components/i18n-provider"
+import { Mascot } from "@/components/mascot/Mascot"
 
 const STORAGE_KEY = "mb_entries_expanded"
 
@@ -104,6 +105,8 @@ export function RecentEntries({
         }
         className={`flex items-center gap-3 p-5 ${hasHistory ? "cursor-pointer" : ""}`}
       >
+        {/* Never logged anything yet: the empty state gets the calm mascot. */}
+        {lastEntryDate === null && <Mascot pose="calm" size={96} className="shrink-0" />}
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-medium text-card-foreground">{headline}</p>
           <p className="mt-0.5 text-[13px] text-muted-foreground">{subline}</p>

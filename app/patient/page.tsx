@@ -1,7 +1,6 @@
 import { getSession } from "@/lib/auth"
 import { getSql } from "@/lib/db"
 import { redirect } from "next/navigation"
-import { JournalForm } from "@/components/patient/journal-form"
 import { WeeklyWellbeing } from "@/components/wellbeing/weekly-wellbeing"
 import { RecentEntries } from "@/components/patient/recent-entries"
 import { MentalStatusBadge } from "@/components/mental-status-badge"
@@ -9,16 +8,21 @@ import { SessionPrepCard } from "@/components/patient/session-prep-card"
 import { getServerI18n } from "@/lib/server-i18n"
 import { PractitionerFeedbackCard } from "@/components/patient/practitioner-feedback-card"
 import { DailyWellnessTasks } from "@/components/patient/daily-wellness-tasks"
-import { ProgramWidget } from "@/components/patient/program-widget"
-import { SleepNudgeBanner } from "@/components/sleep-stories/SleepNudgeBanner"
 import { VideoCallCard } from "@/components/patient/video-call-card"
 import { LinkPractitionerCard } from "@/components/patient/link-practitioner-card"
+import { UserAvatar } from "@/components/user-avatar"
+import { avatarUrl } from "@/lib/avatars-shared"
+import { StatusStrip, type NextSession } from "@/components/patient/dashboard/status-strip"
+import { CheckInSlot } from "@/components/patient/dashboard/check-in-slot"
+import { ContinueCard } from "@/components/patient/dashboard/continue-card"
+import { CollapsibleSection } from "@/components/patient/dashboard/collapsible-section"
+import { Mascot } from "@/components/mascot/Mascot"
 
 export default async function PatientDashboard() {
   const user = await getSession()
   if (!user) redirect("/login")
 
-  const { t } = await getServerI18n()
+  const { t, locale } = await getServerI18n()
 
   const sql = getSql()
 
@@ -31,6 +35,9 @@ export default async function PatientDashboard() {
         <h1 className="text-2xl font-bold text-foreground">
           {t("patient.dashboard.welcomeBack", { name: user.name.split(" ")[0] })}
         </h1>
+        <div className="mx-auto -mb-2 flex w-full max-w-lg justify-center">
+          <Mascot pose="wave" size={96} />
+        </div>
         <LinkPractitionerCard />
       </div>
     )
@@ -72,26 +79,26 @@ export default async function PatientDashboard() {
   // that one is LIMIT 14, so it cannot answer "how many days this month"
   // once someone logs more than 14 days. All three scalars come from the
   // same statement so the month boundary, the last-entry date and "today"
-  // are all read off one clock.
+  // are all read off one clock — the clinic's (Africa/Tunis), not the
+  // database session's GMT, so 00:00–01:00 Tunis counts as the new day.
   const entriesStatsRows = (await sql`
     SELECT
-      COUNT(DISTINCT created_at::date)
-        FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE)) AS days_this_month,
-      MAX(created_at::date)::text AS last_entry_date,
-      CURRENT_DATE::text AS today
+      COUNT(DISTINCT entry_date)
+        FILTER (WHERE entry_date >= date_trunc('month', (now() AT TIME ZONE 'Africa/Tunis'))::date) AS days_this_month,
+      MAX(entry_date)::text AS last_entry_date,
+      ((now() AT TIME ZONE 'Africa/Tunis')::date)::text AS today
     FROM journal_entries
     WHERE patient_id = ${user.id}
   `) as Record<string, unknown>[]
   const entriesStats = entriesStatsRows[0] ?? {}
 
-  // One row per calendar day (the latest that day), newest first — the
-  // expanded list never shows the same day twice.
+  // One row per clinic day, newest first. entry_date is unique per patient
+  // (journal_entries_one_per_day), so no de-duplication is needed.
   const recentDayRows = (await sql`
-    SELECT DISTINCT ON (created_at::date)
-      created_at::date::text AS entry_date, mood, sleep_hours, medication_taken
+    SELECT entry_date::text AS entry_date, mood, sleep_hours, medication_taken
     FROM journal_entries
     WHERE patient_id = ${user.id}
-    ORDER BY created_at::date DESC, created_at DESC
+    ORDER BY entry_date DESC
     LIMIT 10
   `) as Record<string, unknown>[]
 
@@ -132,6 +139,35 @@ export default async function PatientDashboard() {
     WHERE patient_id = ${user.id}
     LIMIT 1
   `) as Record<string, unknown>[]
+  // Status strip — next session. Two sources exist; the scheduled video call
+  // wins because it carries a real time and a way to join. The practitioner's
+  // next_appointment_at is a date typed into a date input (no time of day),
+  // so the chip shows a date only for that source — see NextSession.kind.
+  const nextVideoRows = (await sql`
+    SELECT scheduled_at
+    FROM video_consultations
+    WHERE patient_id = ${user.id}
+      AND mode = 'scheduled'
+      AND status IN ('pending', 'active')
+      AND scheduled_at > NOW()
+    ORDER BY scheduled_at ASC
+    LIMIT 1
+  `) as Record<string, unknown>[]
+  const nextApptRows = (await sql`
+    SELECT next_appointment_at
+    FROM practitioner_feedback
+    WHERE patient_id = ${user.id} AND next_appointment_at > NOW()
+    ORDER BY next_appointment_at ASC
+    LIMIT 1
+  `) as Record<string, unknown>[]
+  const nextSession: NextSession | null = nextVideoRows.length > 0
+    ? { at: new Date(String(nextVideoRows[0].scheduled_at)).toISOString(), kind: "video", href: "#video-call" }
+    : nextApptRows.length > 0
+      ? { at: new Date(String(nextApptRows[0].next_appointment_at)).toISOString(), kind: "appointment", href: "#guidance" }
+      : null
+
+  const avatarRows = (await sql`SELECT avatar_id::text AS avatar_id FROM users WHERE id = ${user.id}`) as Record<string, unknown>[]
+
   const sessionPrepInitialData = sessionPrepRows.length > 0
     ? {
         topics_to_discuss: String(sessionPrepRows[0].topics_to_discuss ?? ""),
@@ -141,62 +177,97 @@ export default async function PatientDashboard() {
       }
     : null
 
+  const today = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", timeZone: "Africa/Tunis" })
+    .format(new Date())
+
+  const recentEntriesCard = (
+    <RecentEntries
+      daysThisMonth={Number(entriesStats.days_this_month ?? 0)}
+      lastEntryDate={entriesStats.last_entry_date ? toDateOnly(entriesStats.last_entry_date) : null}
+      todayDate={toDateOnly(entriesStats.today)}
+      entries={recentDayRows.map((r) => ({
+        date: toDateOnly(r.entry_date),
+        mood: Number(r.mood),
+        sleepHours: Number(r.sleep_hours),
+        medicationTaken: Boolean(r.medication_taken),
+      }))}
+    />
+  )
+
   return (
-    <div className="flex flex-col gap-6">
-      <VideoCallCard patientName={user.name} />
+    <div className="flex flex-col gap-4">
+      {/* An active call outranks everything, and the next-session chip links here. */}
+      <div id="video-call" className="scroll-mt-28 empty:hidden">
+        <VideoCallCard patientName={user.name} />
+      </div>
 
-      <div>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold text-foreground">
-            {t("patient.dashboard.welcomeBack", { name: user.name.split(" ")[0] })}
+      {/* Greeting: avatar | name over (date · mood badge) | compact mascot.
+          Stacked text keeps the row a single line on every width, instead of
+          the badge and date wrapping under the name on phones. */}
+      <div className="flex items-center gap-3">
+        <UserAvatar
+          src={avatarUrl(avatarRows[0]?.avatar_id as string | null)}
+          name={user.name}
+          decorative
+          className="h-10 w-10 shrink-0 bg-primary/10 text-sm font-semibold text-primary"
+        />
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-xl font-bold leading-tight text-foreground">
+            {t("patient.dashboard.greeting", { name: user.name.split(" ")[0] })}
           </h1>
-          <MentalStatusBadge mood={entries.length > 0 ? Number(entries[0].mood) : null} size="lg" />
-        </div>
-        <p className="mt-1 text-muted-foreground">
-          {practitioner.length > 0
-            ? t("patient.dashboard.yourPractitioner", { name: String(practitioner[0].name) })
-            : t("patient.dashboard.trackWellbeing")}
-          {Number(unreadMessages[0]?.count) > 0 && (
-            <>
-              {" "}
-              {t("common.unreadMessages", { count: Number(unreadMessages[0]?.count) })}
-            </>
-          )}
-        </p>
-      </div>
-
-      <DailyWellnessTasks />
-
-      <div className="max-w-2xl">
-        <PractitionerFeedbackCard />
-      </div>
-
-      <ProgramWidget />
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="order-1">
-          <div id="journal-form" className="flex flex-col gap-6 scroll-mt-20">
-            <JournalForm todayEntry={todayEntry} />
-            <SessionPrepCard initialData={sessionPrepInitialData} />
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="text-sm text-muted-foreground">{today}</p>
+            <MentalStatusBadge mood={entries.length > 0 ? Number(entries[0].mood) : null} />
           </div>
         </div>
-        <div className="order-2 flex flex-col gap-6">
-          <WeeklyWellbeing entries={wellbeingEntries} />
-          <SleepNudgeBanner />
-        </div>
+        <Mascot size={32} className="shrink-0" />
       </div>
 
-      <RecentEntries
-        daysThisMonth={Number(entriesStats.days_this_month ?? 0)}
-        lastEntryDate={entriesStats.last_entry_date ? toDateOnly(entriesStats.last_entry_date) : null}
-        todayDate={toDateOnly(entriesStats.today)}
-        entries={recentDayRows.map((r) => ({
-          date: toDateOnly(r.entry_date),
-          mood: Number(r.mood),
-          sleepHours: Number(r.sleep_hours),
-          medicationTaken: Boolean(r.medication_taken),
-        }))}
+      <StatusStrip
+        nextSession={nextSession}
+        unreadCount={Number(unreadMessages[0]?.count ?? 0)}
+        checkedInToday={todayEntry !== null}
       />
+
+      {/* One grid, one instance of every card. Below lg the two column
+          wrappers are `display: contents`, so their children lay themselves
+          out in this grid: check-in and guidance share row 1 from 360px and
+          everything else spans the full width, ordered by priority. From lg
+          the wrappers become the two real columns. */}
+      <div className="grid gap-4 min-[360px]:grid-cols-2 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-start">
+        <div className="contents lg:flex lg:flex-col lg:gap-4">
+          {/* While the full form is open it takes the whole row on phones
+              (guidance drops below); the CTA and the saved summary stay half-width. */}
+          <div className="order-1 min-w-0 has-[form]:col-span-full lg:order-none">
+            <CheckInSlot todayEntry={todayEntry} />
+          </div>
+          <div className="order-3 col-span-full lg:order-none lg:col-auto">
+            <SessionPrepCard initialData={sessionPrepInitialData} />
+          </div>
+          <div className="order-4 col-span-full lg:order-none lg:col-auto">{recentEntriesCard}</div>
+        </div>
+
+        <div className="contents lg:flex lg:flex-col lg:gap-4">
+          <div id="guidance" className="order-2 min-w-0 scroll-mt-28 lg:order-none">
+            <PractitionerFeedbackCard compact />
+          </div>
+          <div className="order-5 col-span-full lg:order-none lg:col-auto">
+            <ContinueCard />
+          </div>
+
+          {/* Kept, one tap away: not part of the priority order, but nothing is lost. */}
+          <div className="order-6 col-span-full lg:order-none lg:col-auto">
+            <CollapsibleSection title={t("patient.wellness.title")} summary={t("patient.dashboard.more.tasksSummary")}>
+              <DailyWellnessTasks />
+            </CollapsibleSection>
+          </div>
+          <div className="order-7 col-span-full lg:order-none lg:col-auto">
+            <CollapsibleSection title={t("patient.dashboard.more.week")} summary={t("patient.dashboard.more.weekSummary")}>
+              <WeeklyWellbeing entries={wellbeingEntries} />
+            </CollapsibleSection>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

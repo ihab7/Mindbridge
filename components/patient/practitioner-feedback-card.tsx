@@ -18,7 +18,9 @@ type FeedbackResponse = {
   }
 }
 
-export function PractitionerFeedbackCard() {
+/** `compact`: dashboard slot — the note is clamped to 2 lines behind a
+ *  "see all" toggle instead of 5, so the card fits beside the check-in. */
+export function PractitionerFeedbackCard({ compact = false }: { compact?: boolean } = {}) {
   const { locale } = useI18n()
   const t = useT()
 
@@ -61,8 +63,8 @@ export function PractitionerFeedbackCard() {
   }, [feedback?.nextAppointmentAt, locale, t])
 
   return (
-    <Card>
-      <CardHeader className="pb-4">
+    <Card className={compact ? "h-full" : undefined}>
+      <CardHeader className={compact ? "p-4 pb-2" : "pb-4"}>
         <CardTitle className="flex items-center gap-2 text-base">
           <MessageCircle className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <span>{t("patient.feedback.title")}</span>
@@ -79,15 +81,15 @@ export function PractitionerFeedbackCard() {
           </CardDescription>
         ) : null}
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className={compact ? "p-4 pt-0" : "pt-0"}>
         {loading ? (
           <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : feedback ? (
           <div className="space-y-3">
-            <p className={`text-sm leading-relaxed text-card-foreground ${expanded ? "" : "line-clamp-5"}`}>
+            <p className={`text-sm leading-relaxed text-card-foreground ${expanded ? "" : compact ? "line-clamp-2" : "line-clamp-5"}`}>
               {feedback.note}
             </p>
-            {feedback.note.length > 240 && (
+            {(compact || feedback.note.length > 240) && (
               <Button
                 type="button"
                 variant="ghost"
@@ -110,7 +112,7 @@ export function PractitionerFeedbackCard() {
         )}
       </CardContent>
       {!loading && feedback?.updatedAt ? (
-        <CardFooter className="pt-0 text-xs text-muted-foreground">
+        <CardFooter className={compact ? "p-4 pt-0 text-xs text-muted-foreground" : "pt-0 text-xs text-muted-foreground"}>
           <span>{updatedLabel}</span>
         </CardFooter>
       ) : null}

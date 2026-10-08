@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useT, useI18n } from "@/components/i18n-provider"
 import { StoryCard } from "./StoryCard"
+import { Mascot } from "@/components/mascot/Mascot"
 import { getAvailableLanguages, type SleepStory } from "@/lib/sleep-stories/stories"
 
 type StoryLanguage = SleepStory["language"]
@@ -89,9 +90,12 @@ export function StoryLibraryPage() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t("sleepStories.library.title")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("sleepStories.library.subtitle")}</p>
+        <div className="flex items-center gap-3">
+          <Mascot pose="sleepy" size={64} className="shrink-0" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{t("sleepStories.library.title")}</h1>
+            <p className="mt-1 text-sm text-muted-foreground">{t("sleepStories.library.subtitle")}</p>
+          </div>
         </div>
         <div className="flex gap-1.5" role="group" aria-label={t("sleepStories.library.languageFilter")}>
           {LANGUAGES.map((lang) => {

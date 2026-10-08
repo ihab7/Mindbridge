@@ -11,6 +11,7 @@ import { isSessionUnlocked, nextSession as computeNextSession } from "@/lib/prog
 import type { PlanEntry, Program, SessionProgressEntry } from "@/lib/program/types"
 import { ProgramHero } from "./program-hero"
 import { WeekCard } from "./week-card"
+import { Mascot } from "@/components/mascot/Mascot"
 import { SessionPlayer } from "./session-player"
 import type { SessionCompletionPayload } from "./use-session-player"
 
@@ -81,7 +82,9 @@ export function ProgramPageClient() {
   if (!data || !data.hasAssignment) {
     return (
       <div className="mb-card flex flex-col items-center gap-2 rounded-2xl border border-border bg-card py-16 text-center">
-        <ClipboardList className="h-8 w-8 text-muted-foreground/50" />
+        {/* Mascot only for a real "no programme yet" answer; a failed fetch
+            (data === null) lands here too and keeps the neutral icon. */}
+        {data ? <Mascot pose="calm" size={96} /> : <ClipboardList className="h-8 w-8 text-muted-foreground/50" />}
         <p className="text-sm text-muted-foreground">{t("program.empty")}</p>
       </div>
     )
